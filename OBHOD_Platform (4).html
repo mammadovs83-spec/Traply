@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Traply — pest control monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f0e6; --panel:#ffffff; --ink:#1b211f; --ink-soft:#5b615c; --line:#d4cdb8;
+    --accent:#1e5f63; --accent-soft:#dfeceb; --amber:#c9a227; --amber-soft:#f6edcf;
+    --danger:#b23a2e; --danger-soft:#f6dcd8; --success:#3f7a4a; --success-soft:#e2ede2; --grey:#9a998f;
+    --shadow:0 1px 3px rgba(27,33,31,.06);
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg);
+    background-image:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
+    background-size:20px 20px;
+    color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', ui-monospace, monospace;}
+  .app{max-width:1240px; margin:0 auto; padding:18px 18px 48px;}
+  .filebanner{display:none; background:var(--amber-soft); border:1px solid var(--amber); color:#6b551a; padding:10px 14px; border-radius:8px; font-size:12.5px; margin-bottom:14px;}
+  .filebanner.show{display:block;}
+
+  /* HEADER */
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:var(--panel); border:1.5px solid var(--ink); border-radius:12px;
+    padding:12px 16px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+  .brand-mark{
+    width:40px; height:40px; flex:none; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:18px;
+    border-radius:8px;
+  }
+  .brand h1{font-size:22px; margin:0; letter-spacing:.3px; font-family:'Barlow Condensed', sans-serif;}
+  .brand p{margin:1px 0 0; color:var(--ink-soft); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(420px,55vw);}
+  .headctrl{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px;}
+  .rolebar{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+  .rolebar > button{
+    border:1.5px solid var(--line); background:var(--panel); color:var(--ink);
+    font-weight:600; font-size:12px; padding:6px 11px; border-radius:7px; cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .rolebar > button.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .rolebar > button:hover{border-color:var(--ink);}
+  .locsel select{
+    border:1.5px solid var(--line); border-radius:7px; padding:6px 10px; font-weight:600;
+    font-size:12.5px; background:var(--panel); font-family:'IBM Plex Sans', sans-serif; max-width:220px;
+  }
+  .langbar{display:inline-flex; border:1.5px solid var(--line); border-radius:7px; overflow:hidden;}
+  .langbar button{
+    border:none; background:var(--panel); color:var(--ink); font-weight:600; font-size:11px;
+    padding:6px 9px; cursor:pointer; border-right:1px solid var(--line); font-family:'IBM Plex Sans', sans-serif;
+  }
+  .langbar button:last-child{border-right:none;}
+  .langbar button.active{background:var(--accent); color:#fff;}
+  .langbar button:hover:not(.active){background:var(--accent-soft);}
+
+  /* TABS */
+  .tabs{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; padding:4px 0;}
+  .tabs button{
+    padding:7px 13px; border:1.5px solid transparent; background:transparent;
+    border-radius:8px; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif;
+    font-weight:500; color:var(--ink-soft); transition:background .12s, color .12s;
+  }
+  .tabs button:hover{background:rgba(255,255,255,.7); color:var(--ink);}
+  .tabs button.active{background:var(--ink); color:var(--bg); border-color:var(--ink); font-weight:600;}
+
+  /* PANELS */
+  .panel{background:var(--panel); border:1.5px solid var(--line); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px; box-shadow:var(--shadow);}
+  .panel h3{font-family:'Barlow Condensed', sans-serif; font-size:18px; margin:0 0 10px; letter-spacing:.2px;}
+  .panel h4{font-family:'Barlow Condensed', sans-serif; font-size:15px; margin:0 0 8px;}
+  .grid2{display:grid; grid-template-columns:1.15fr .85fr; gap:14px; align-items:start;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+
+  /* STATS */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px;}
+  .stat{
+    background:var(--panel); border:1.5px solid var(--line); border-radius:var(--radius);
+    padding:14px 14px 12px; border-bottom:4px solid var(--accent); box-shadow:var(--shadow);
+  }
+  .stat.danger{border-bottom-color:var(--danger);}
+  .stat.amber{border-bottom-color:var(--amber);}
+  .stat.grey{border-bottom-color:var(--grey);}
+  .stat .num{font-family:'Barlow Condensed', sans-serif; font-size:32px; line-height:1;}
+  .stat .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+
+  .alertbar{
+    background:var(--danger); color:#fff; padding:10px 14px; border-radius:8px; margin-bottom:10px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px;
+  }
+  .alertbar button{background:rgba(255,255,255,.22); border:none; color:#fff; border-radius:5px; padding:5px 10px; font-size:11px; cursor:pointer; font-weight:600;}
+  .alertbar button:hover{background:rgba(255,255,255,.32);}
+  .alertbar.amber{background:var(--amber); color:#3a2f08;}
+  .alertbar.amber button{background:rgba(0,0,0,.12); color:#3a2f08;}
+
+  .chartbox{height:220px; position:relative;}
+  .btn{
+    border:none; background:var(--ink); color:var(--bg); font-weight:600; font-size:13px;
+    padding:9px 14px; border-radius:8px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.4; cursor:not-allowed; filter:none;}
+  .btn.ghost{background:transparent; border:1.5px solid var(--ink); color:var(--ink);}
+  .btn.ghost:hover{background:var(--ink); color:var(--bg);}
+  .btn.small{padding:6px 10px; font-size:12px;}
+  .btn.danger{background:var(--danger);}
+  .btn.block{width:100%;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; font-size:11px; color:var(--ink-soft); font-weight:600; padding:8px 8px; border-bottom:1.5px solid var(--ink); text-transform:none;}
+  td{padding:8px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tr:hover td{background:rgba(30,95,99,.03);}
+  .rowstatus{display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:12px;}
+  .thumb-sm{width:32px; height:32px; object-fit:cover; border-radius:5px; border:1px solid var(--line);}
+
+  /* MAP */
+  .map-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .type-filter{display:flex; gap:6px; flex-wrap:wrap;}
+  .type-chip{padding:5px 10px; border:1.5px solid var(--line); border-radius:16px; font-size:11.5px; cursor:pointer; background:var(--panel);}
+  .type-chip:hover{border-color:var(--accent);}
+  .type-chip.sel{background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600;}
+  .plan-area{
+    position:relative; width:100%; height:min(440px,55vh); background-color:#eee9da;
+    background-position:center; background-repeat:no-repeat; background-size:contain;
+    border:1px solid var(--line); border-radius:8px; overflow:hidden;
+  }
+  .plan-area.placing{cursor:crosshair; outline:3px dashed var(--accent); outline-offset:-3px;}
+  .plan-empty{display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:10px; color:var(--ink-soft); font-size:13px; text-align:center; padding:20px;}
+  .zone2{position:absolute; border:1.5px dashed #9c9576; background:rgba(255,255,255,.35); font-size:10px; color:#726c54; padding:3px 5px; pointer-events:none; border-radius:3px;}
+  .dev-pt{
+    position:absolute; width:28px; height:28px; border-radius:50%; transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; font-size:14px; background:var(--panel);
+    border:3px solid var(--success); cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.2);
+  }
+  .dev-pt:hover{transform:translate(-50%,-50%) scale(1.12); z-index:2;}
+  .dev-pt.activity{border-color:var(--danger); animation:pulse 1.4s infinite;}
+  .dev-pt.damaged{border-color:var(--amber);}
+  .dev-pt.missing{border-color:var(--grey); border-style:dashed; opacity:.7;}
+  .dev-pt.overdue{border-color:var(--grey);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(178,58,46,.5);}50%{box-shadow:0 0 0 6px rgba(178,58,46,0);}}
+  .legend{display:flex; gap:14px; margin-top:10px; font-size:11.5px; color:var(--ink-soft); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:10px; height:10px; border-radius:50%; display:inline-block;}
+
+  .fieldrow{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;}
+  .fieldrow.full{grid-template-columns:1fr;}
+  label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:4px;}
+  input[type=text],input[type=number],input[type=time],input[type=password],select,textarea{
+    width:100%; border:1.5px solid var(--line); border-radius:7px; padding:8px 10px;
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; background:var(--panel); transition:border-color .12s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  input[type=file]{font-size:12.5px;}
+  textarea{resize:vertical; min-height:60px;}
+
+  .drawer-bg{position:fixed; inset:0; background:rgba(0,0,0,.32); z-index:55; display:none; backdrop-filter:blur(2px);}
+  .drawer-bg.show{display:block;}
+  .drawer{
+    position:fixed; top:0; right:0; height:100vh; width:min(340px,92vw); background:var(--panel);
+    border-left:2px solid var(--ink); padding:20px; box-shadow:-8px 0 24px rgba(0,0,0,.12);
+    transform:translateX(100%); transition:transform .22s ease; z-index:60; overflow-y:auto;
+  }
+  .drawer.show{transform:translateX(0);}
+  .drawer h3{font-family:'Barlow Condensed', sans-serif; font-size:20px; margin:0 0 4px;}
+  .drawer .sub{font-size:12px; color:var(--ink-soft); margin-bottom:14px;}
+
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(27,33,31,.5); align-items:center; justify-content:center; z-index:70; backdrop-filter:blur(2px); padding:16px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--panel); border:2px solid var(--ink); border-radius:12px; padding:22px; width:min(320px,100%); text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.18);}
+  .modal h4{margin:0 0 4px; font-family:'Barlow Condensed', sans-serif; font-size:20px;}
+  .modal .qrbox{margin:14px auto; width:180px; height:180px; display:flex; align-items:center; justify-content:center; background:#fff;}
+  .modal-actions{display:flex; gap:8px; margin-top:10px; justify-content:center; flex-wrap:wrap;}
+
+  .chip{padding:6px 10px; border:1.5px solid var(--line); border-radius:20px; font-size:12px; cursor:pointer; display:inline-block; margin:2px;}
+  .chip.sel{border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .seg{display:flex; gap:6px;}
+  .seg button{flex:1; padding:9px 6px; font-size:12.5px; border:1.5px solid var(--line); background:var(--panel); border-radius:7px; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; font-weight:500;}
+  .seg button.sel{border-color:var(--ink); background:var(--ink); color:var(--bg);}
+  .seg button.sel.danger{background:var(--danger); border-color:var(--danger);}
+  .counter{display:flex; align-items:center; gap:10px;}
+  .counter button{width:30px; height:30px; border-radius:7px; border:1.5px solid var(--ink); background:var(--panel); cursor:pointer; font-size:16px;}
+  .counter span{font-weight:600; font-size:16px; min-width:20px; text-align:center;}
+
+  .tech-wrap{display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
+  .phone{width:340px; flex:none; background:var(--panel); border:3px solid var(--ink); border-radius:26px; padding:14px; box-shadow:8px 8px 0 rgba(27,33,31,.1);}
+  .phone-notch{width:70px; height:6px; background:var(--ink); border-radius:4px; margin:0 auto 10px;}
+  .screen{background:#f6f4ec; border:1px solid var(--line); border-radius:10px; min-height:620px; padding:16px; display:flex; flex-direction:column; gap:11px; position:relative; overflow:hidden;}
+  .screen-top{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft);}
+  .status-pill{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+  .status-pill.on{background:var(--success-soft); color:var(--success);}
+  .status-pill.warn{background:var(--amber-soft); color:#8a6d10;}
+  .dotc{width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .obj-card{border:1.5px solid var(--line); border-radius:8px; padding:11px; background:var(--panel); display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom:8px; transition:border-color .12s;}
+  .obj-card:hover{border-color:var(--accent);}
+  .obj-card b{display:block; font-size:14px;} .obj-card span{font-size:11.5px; color:var(--ink-soft);}
+  video.cam{width:100%; border-radius:10px; background:#000; display:block;}
+  .cam-wrap{position:relative;} .cam-frame{position:absolute; inset:14%; border:2px solid var(--accent); border-radius:10px; pointer-events:none;}
+  .verify-line{font-size:12px; display:flex; gap:6px; align-items:center; color:var(--ink-soft);}
+  .verify-line.ok{color:var(--success);} .verify-line.bad{color:var(--danger);}
+  .tag{background:var(--panel); border:1.5px solid var(--ink); border-radius:6px; padding:10px 12px; position:relative;}
+  .tag::before{content:''; position:absolute; top:-6px; left:14px; width:10px; height:10px; border-radius:50%; background:var(--bg); border:1.5px solid var(--ink);}
+  .tag .idl{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft);}
+  .tag .name{font-weight:600; font-size:13.5px;}
+  .photo-req{border:1.5px dashed var(--danger); background:var(--danger-soft); color:var(--danger); border-radius:8px; padding:10px; font-size:12px; display:flex; flex-direction:column; gap:8px;}
+  .photo-thumb{width:100%; border-radius:8px; border:1.5px solid var(--ink);}
+  .toast{position:absolute; bottom:14px; left:14px; right:14px; background:var(--ink); color:var(--bg); padding:12px; border-radius:8px; font-size:12.5px; display:flex; justify-content:space-between; align-items:center;}
+  .remaining-list{display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;}
+  .remaining-item{display:flex; justify-content:space-between; align-items:center; border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; cursor:pointer;}
+  .remaining-item:hover{border-color:var(--accent);}
+
+  .empty{padding:28px 16px; text-align:center; color:var(--ink-soft); font-size:13px;}
+  .footnote{font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.45;}
+  .audit-item{font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--line); color:var(--ink-soft);}
+  .audit-item b{color:var(--ink);}
+
+  .login-wrap{min-height:72vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .login-card{background:var(--panel); border:2px solid var(--ink); border-radius:14px; padding:28px; width:100%; max-width:380px; box-shadow:0 8px 28px rgba(27,33,31,.08);}
+  .login-card h2{font-family:'Barlow Condensed', sans-serif; font-size:26px; margin:0 0 6px;}
+  .login-err{color:var(--danger); font-size:12.5px; margin:8px 0; min-height:18px;}
+  .user-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .user-row .meta{color:var(--ink-soft); font-size:11.5px; margin-top:2px;}
+  .badge-role{display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:var(--accent-soft); color:var(--accent); margin-left:6px;}
+  .badge-role.admin{background:var(--ink); color:var(--bg);}
+  .badge-role.supervisor{background:var(--amber-soft); color:#6b551a;}
+  .badge-role.tech{background:var(--success-soft); color:var(--success);}
+  .badge-role.client{background:var(--line); color:var(--ink-soft);}
+
+  @media (max-width: 900px){
+    .app{padding:12px 12px 40px;}
+    header{padding:12px; align-items:flex-start;}
+    .brand p{display:none;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .grid2,.grid3{grid-template-columns:1fr;}
+    .fieldrow{grid-template-columns:1fr;}
+    .tech-wrap{flex-direction:column; align-items:center;}
+    .plan-area{height:320px;}
+    .locsel select{max-width:160px;}
+  }
+  @media (max-width: 520px){
+    .stats{grid-template-columns:1fr 1fr;}
+    .stat .num{font-size:28px;}
+    .phone{width:100%; max-width:340px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="filebanner" id="fileBanner">⚠ Файл открыт как file:// — камера и геопозиция заблокированы браузером. Откройте через http/https-хостинг для полной функциональности. Ручной ввод кода станции доступен всегда.</div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div><h1>Traply</h1><p>Pest control monitoring · site plans · QR rounds · thresholds & trends</p></div>
+    </div>
+    <div class="headctrl">
+      <div class="rolebar" id="roleBar"></div>
+      <div class="locsel"><select id="locSelect" onchange="setLocation(this.value)"></select></div>
+    </div>
+  </header>
+
+  <div id="tabsHost"></div>
+  <div id="content"></div>
+</div>
+
+<div class="drawer-bg" id="drawerBg" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"></div>
+
+<div class="modal-bg" id="qrModal">
+  <div class="modal">
+    <h4 id="qrModalTitle">Устройство</h4>
+    <div class="qrbox" id="qrBoxTarget"></div>
+    <div class="modal-actions">
+      <button class="btn small" onclick="downloadQR()">Скачать PNG</button>
+      <button class="btn small ghost" onclick="printQR()">Печать наклейки</button>
+    </div>
+    <button class="btn ghost small" style="margin-top:10px; width:100%;" onclick="closeQRModal()">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="devModal">
+  <div class="modal" style="width:320px; text-align:left;">
+    <h4>Новое устройство</h4>
+    <div class="fieldrow full"><div><label>Тип</label><div id="devModalType" class="mono" style="padding:8px 0; font-weight:600;"></div></div></div>
+    <div class="fieldrow full"><div><label>Название / расположение</label><input type="text" id="devName" placeholder="напр. Стеллаж D4"></div></div>
+    <div class="fieldrow full"><div><label>Зона</label><select id="devZoneSel"></select></div></div>
+    <div class="fieldrow full"><div><label>№ на наклейке</label><input type="text" id="devNumber" class="mono" readonly></div></div>
+    <div class="modal-actions">
+      <button class="btn small" onclick="confirmAddDevice()">Создать и показать QR</button>
+      <button class="btn small ghost" onclick="cancelAddDevice()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="hiddenCanvas" style="display:none;"></canvas>
+
+<script>
+/* =========================================================
+   CONSTANTS
+========================================================= */
+if(location.protocol === 'file:'){ document.getElementById('fileBanner').classList.add('show'); }
+
+const deviceTypes = {
+  rodent_snap:    { label:'Мышеловка',              icon:'🐭', pest:true },
+  rodent_bait:    { label:'Приманочная станция',    icon:'📦', pest:true },
+  rodent_monitor: { label:'Монитор активности',     icon:'📡', pest:true },
+  fly_ilt:        { label:'Мухоловка (ILT)',        icon:'🪰', pest:true },
+  insect_monitor: { label:'Клеевой монитор',        icon:'🕸️', pest:true },
+  other:          { label:'Контрольная точка',      icon:'✚', pest:false },
+};
+const pestOptionsByType = {
+  rodent_snap:['Мышь','Крыса'], rodent_bait:['Мышь','Крыса'], rodent_monitor:['Мышь','Крыса'],
+  fly_ilt:['Муха/летающие'], insect_monitor:['Таракан','Другое насекомое'],
+};
+
+/* =========================================================
+   I18N — ru / en / az
+========================================================= */
+const I18N = {
+  ru: {
+    app_title:'Traply',
+    app_sub:'Pest control monitoring · site plans · QR rounds · thresholds & trends',
+    login_title:'Traply — giriş',
+    login_hint:'Логин и пароль выдаёт администратор',
+    login_user:'Логин',
+    login_pass:'Пароль',
+    login_btn:'Войти',
+    login_err:'Неверный логин или пароль',
+    login_demo:'Демо: admin/admin · supervisor/super · tech1/tech1 · client/client',
+    logout:'выход',
+    role_admin:'Админ', role_supervisor:'Супервайзер', role_tech:'Техник', role_client:'Клиент',
+    tab_dashboard:'Дашборд', tab_map:'Карта устройств', tab_trends:'Тренды', tab_reports:'Отчёты',
+    tab_locations:'Локации', tab_settings:'Настройки', tab_thresholds:'Пороги', tab_audit:'Аудит',
+    tab_plan:'План объекта', tab_zones:'Зоны', tab_devices:'Устройства', tab_users:'Пользователи', tab_map_short:'Карта',
+    users_title:'Пользователи и доступы',
+    users_hint:'Каждый пользователь входит по своему логину и паролю. Роль определяет доступ: Админ, Супервайзер, Техник, Клиент.',
+    users_add:'Добавить пользователя', users_edit:'Редактировать', users_save:'Сохранить', users_reset:'Сброс формы',
+    users_name:'Имя', users_role:'Роль', users_login:'Логин', users_pass:'Пароль',
+    users_change:'Изменить', users_disable:'Отключить', users_enable:'Включить', users_delete:'Удалить',
+    users_disabled:'отключён', users_login_label:'логин',
+    denied:'Доступ запрещён', no_sections:'Нет доступных разделов для вашей роли',
+    section_denied:'Раздел недоступен для вашей роли',
+    need_perm:'Недостаточно прав',
+    save:'Сохранить', cancel:'Отмена', close:'Закрыть', refresh:'Обновить',
+    plan_missing:'План объекта ещё не загружен.',
+    plan_admin_hint:'Перейдите во вкладку «План объекта», чтобы загрузить свою карту склада.',
+    plan_user_hint:'Обратитесь к администратору программы для загрузки плана и размещения устройств.',
+    thresh_view_only:'Только просмотр: изменение порогов доступно супервайзеру и админу.',
+    status_ok:'чисто', status_activity:'активность', status_damaged:'повреждена', status_missing:'утеряна / просрочено',
+    all_types:'Все типы',
+    tech_how:'Как работает обход',
+    tech_how_text:'Камера считывает QR устройства, GPS проверяет расстояние до его координат, форма адаптируется под тип устройства. Все визиты пишутся в общий журнал.',
+    flow_1:'Начало смены и выбор объекта', flow_2:'Сканирование QR-кода станции', flow_3:'Проверка геопозиции и времени', flow_4:'Заполнение формы', flow_5:'Сохранение и переход дальше',
+    choose_object:'Выбор объекта', devices_count:'устройств', scan_qr:'Сканировать QR устройства',
+    remaining:'Осталось пройти сегодня', all_done:'Все точки на сегодня пройдены ✓',
+    online:'онлайн', offline:'офлайн', in_queue:'в очереди',
+
+    dash_devices:'устройств на объекте',
+    dash_visits_today:'визитов сегодня',
+    dash_active_inc:'активных инцидентов',
+    dash_overdue:'просрочено проверкой',
+    dash_trend30:'Тренд активности, 30 дней',
+    dash_by_zone:'Активность по зонам',
+    dash_visit_log:'Журнал визитов',
+    alert_threshold:'Превышен порог',
+    alert_shift:'Порог смены',
+    alert_device:'Устройство',
+    alert_damaged:'повреждено',
+    alert_missing:'утеряно',
+    alert_ack:'Подтвердить',
+    col_device:'Устройство',
+    col_type:'Тип',
+    col_time:'Время',
+    col_result:'Результат',
+    col_tech:'Техник',
+    col_photo:'Фото',
+    col_zone:'Зона',
+    col_hits:'Срабатываний',
+    col_species:'Вид',
+    col_threshold:'Порог (шт. за визит)',
+    col_location:'Локация',
+    col_devices:'Устройств',
+    col_visits:'Визитов',
+    col_incidents:'Инцидентов',
+    col_open_alerts:'Открытых алертов',
+    col_name:'Название',
+    empty_visits:'Пока нет визитов на этом объекте.',
+    empty_visits_dev:'Визитов ещё не было.',
+    empty_audit:'Изменений пока не было.',
+    chart_incidents:'Инциденты',
+    trends_30:'Активность за 30 дней',
+    trends_zones:'По зонам',
+    trends_pest:'По видам вредителей',
+    trends_hot:'Горячие устройства',
+    map_title:'Карта устройств',
+    thresh_title:'Пороги срабатывания',
+    thresh_hint:'При достижении количества особей за визит формируется алерт и отметка в сервис-репорте.',
+    thresh_shift:'Порог инцидентов за смену на объект',
+    reports_title:'Сервис-репорт',
+    reports_hint:'Формирует сводку по объекту за сегодняшнюю смену. Готов для печати/PDF (Ctrl+P).',
+    reports_btn:'Сформировать и открыть отчёт',
+    reports_sched:'Плановые отчёты на email',
+    reports_day:'День недели',
+    reports_time:'Время',
+    reports_auto:'Отправлять сводный отчёт автоматически',
+    loc_title:'Мои локации',
+    loc_hint:'Один вход в аккаунт — доступ ко всем локациям сети. Переключение объекта — селектор в правом верхнем углу.',
+    settings_title:'Уведомления',
+    settings_email:'Email при новом алерте',
+    settings_sms:'SMS (этап 2, недоступно в демо)',
+    settings_push:'Push-уведомления в браузере',
+    audit_title:'Журнал изменений',
+    plan_title:'План объекта',
+    plan_upload_hint:'Загрузите изображение плана склада (PNG/JPG). Он станет подложкой карты устройств для всех ролей.',
+    zones_title:'Зоны',
+    devices_title:'Устройства',
+    mon:'Понедельник', tue:'Вторник', wed:'Среда', thu:'Четверг', fri:'Пятница',
+    report_service:'Сервис-репорт',
+    report_address:'Адрес',
+    report_contacts:'Контакты',
+    report_date:'Дата',
+    report_incidents:'Инциденты',
+    report_full_log:'Полный журнал визитов',
+    report_overdue:'просрочено',
+
+    progress_today:'Прогресс сегодня',
+    checked_today:'Проверено сегодня',
+    cam_hint:'Наведите камеру на QR-код устройства',
+    manual_code:'Или номер устройства вручную',
+    confirm_num:'Подтвердить номер',
+    geo_checking:'Определяю геопозицию…',
+    geo_manual:'Подтверждаю присутствие вручную',
+    geo_unsupported:'Геолокация не поддерживается',
+    open_form:'Открыть форму',
+    back_list:'К списку точек',
+    visit_result:'Результат осмотра',
+    visit_count:'Количество',
+    visit_alive:'Состояние',
+    alive:'Живой', dead:'Мёртвый',
+    visit_actions:'Действия',
+    act_bait:'Замена приманки', act_insert:'Замена вкладыша', act_disinfect:'Дезинфекция',
+    act_glue:'Замена клея', act_lamp:'Замена лампы', act_clean:'Очистка',
+    photo_req:'Фото обязательно', photo_take:'Сделать фото', photo_retake:'Переснять',
+    anomaly:'Аномалия', comment:'Комментарий',
+    device_state:'Состояние устройства', state_ok:'Цела', state_lost:'Утеряна',
+    save_next:'Сохранить и дальше',
+    tab_rounds:'Обходы', tab_calendar:'Календарь',
+    rounds_title:'Статус обхода сегодня',
+    rounds_checked:'Проверено', rounds_pending:'Не проверено',
+    cal_title:'Календарь проверок',
+    cal_rule_rodent:'Мышеловки / приманки: минимум 2 раза в неделю',
+    cal_rule_company:'Компания дератизации: минимум 1 раз в месяц',
+    cal_week:'Эта неделя (грызуны)',
+    cal_month:'Этот месяц (компания)',
+    cal_add_company:'Отметить проверку компании',
+    cal_done:'выполнено', cal_need:'нужно',
+    sync_api:'Общая база (LAN)', sync_local:'Локально',
+    lang:'Язык',
+  },
+  en: {
+    app_title:'Traply',
+    app_sub:'Pest control monitoring · site plans · QR rounds · thresholds & trends',
+    login_title:'Sign in to Traply',
+    login_hint:'Login and password are issued by the administrator',
+    login_user:'Login',
+    login_pass:'Password',
+    login_btn:'Sign in',
+    login_err:'Invalid login or password',
+    login_demo:'Demo: admin/admin · supervisor/super · tech1/tech1 · client/client',
+    logout:'log out',
+    role_admin:'Admin', role_supervisor:'Supervisor', role_tech:'Technician', role_client:'Client',
+    tab_dashboard:'Dashboard', tab_map:'Device map', tab_trends:'Trends', tab_reports:'Reports',
+    tab_locations:'Locations', tab_settings:'Settings', tab_thresholds:'Thresholds', tab_audit:'Audit',
+    tab_plan:'Site plan', tab_zones:'Zones', tab_devices:'Devices', tab_users:'Users', tab_map_short:'Map',
+    users_title:'Users and access',
+    users_hint:'Each user signs in with their own login and password. Role defines access: Admin, Supervisor, Technician, Client.',
+    users_add:'Add user', users_edit:'Edit', users_save:'Save', users_reset:'Reset form',
+    users_name:'Name', users_role:'Role', users_login:'Login', users_pass:'Password',
+    users_change:'Edit', users_disable:'Disable', users_enable:'Enable', users_delete:'Delete',
+    users_disabled:'disabled', users_login_label:'login',
+    denied:'Access denied', no_sections:'No sections available for your role',
+    section_denied:'Section is not available for your role',
+    need_perm:'Insufficient permissions',
+    save:'Save', cancel:'Cancel', close:'Close', refresh:'Refresh',
+    plan_missing:'Site plan has not been uploaded yet.',
+    plan_admin_hint:'Go to the Site plan tab to upload your warehouse map.',
+    plan_user_hint:'Contact the program administrator to upload the plan and place devices.',
+    thresh_view_only:'View only: threshold editing is available to supervisor and admin.',
+    status_ok:'clean', status_activity:'activity', status_damaged:'damaged', status_missing:'missing / overdue',
+    all_types:'All types',
+    tech_how:'How the round works',
+    tech_how_text:'Camera reads the device QR, GPS checks distance to its coordinates, the form adapts to device type. All visits are written to the shared log.',
+    flow_1:'Start shift and select site', flow_2:'Scan station QR code', flow_3:'Verify geolocation and time', flow_4:'Fill in the form', flow_5:'Save and continue',
+    choose_object:'Select site', devices_count:'devices', scan_qr:'Scan device QR',
+    remaining:'Remaining today', all_done:'All points completed for today ✓',
+    online:'online', offline:'offline', in_queue:'queued',
+
+    dash_devices:'devices on site',
+    dash_visits_today:'visits today',
+    dash_active_inc:'active incidents',
+    dash_overdue:'overdue for check',
+    dash_trend30:'Activity trend, 30 days',
+    dash_by_zone:'Activity by zone',
+    dash_visit_log:'Visit log',
+    alert_threshold:'Threshold exceeded',
+    alert_shift:'Shift threshold',
+    alert_device:'Device',
+    alert_damaged:'damaged',
+    alert_missing:'missing',
+    alert_ack:'Acknowledge',
+    col_device:'Device',
+    col_type:'Type',
+    col_time:'Time',
+    col_result:'Result',
+    col_tech:'Technician',
+    col_photo:'Photo',
+    col_zone:'Zone',
+    col_hits:'Hits',
+    col_species:'Species',
+    col_threshold:'Threshold (per visit)',
+    col_location:'Location',
+    col_devices:'Devices',
+    col_visits:'Visits',
+    col_incidents:'Incidents',
+    col_open_alerts:'Open alerts',
+    col_name:'Name',
+    empty_visits:'No visits on this site yet.',
+    empty_visits_dev:'No visits yet.',
+    empty_audit:'No changes yet.',
+    chart_incidents:'Incidents',
+    trends_30:'Activity over 30 days',
+    trends_zones:'By zone',
+    trends_pest:'By pest type',
+    trends_hot:'Hot devices',
+    map_title:'Device map',
+    thresh_title:'Trigger thresholds',
+    thresh_hint:'When the count per visit reaches the limit, an alert is created and marked in the service report.',
+    thresh_shift:'Incident threshold per shift for the site',
+    reports_title:'Service report',
+    reports_hint:'Builds a summary for today’s shift. Ready to print/PDF (Ctrl+P).',
+    reports_btn:'Generate and open report',
+    reports_sched:'Scheduled email reports',
+    reports_day:'Day of week',
+    reports_time:'Time',
+    reports_auto:'Send summary report automatically',
+    loc_title:'My locations',
+    loc_hint:'One account login — access to all network locations. Switch site with the selector in the top right.',
+    settings_title:'Notifications',
+    settings_email:'Email on new alert',
+    settings_sms:'SMS (phase 2, not in demo)',
+    settings_push:'Browser push notifications',
+    audit_title:'Change log',
+    plan_title:'Site plan',
+    plan_upload_hint:'Upload a warehouse plan image (PNG/JPG). It becomes the device map background for all roles.',
+    zones_title:'Zones',
+    devices_title:'Devices',
+    mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday',
+    report_service:'Service report',
+    report_address:'Address',
+    report_contacts:'Contacts',
+    report_date:'Date',
+    report_incidents:'Incidents',
+    report_full_log:'Full visit log',
+    report_overdue:'overdue',
+
+    progress_today:'Progress today',
+    checked_today:'Checked today',
+    cam_hint:'Point the camera at the device QR code',
+    manual_code:'Or enter device number manually',
+    confirm_num:'Confirm number',
+    geo_checking:'Getting location…',
+    geo_manual:'I confirm presence manually',
+    geo_unsupported:'Geolocation not supported',
+    open_form:'Open form',
+    back_list:'Back to list',
+    visit_result:'Inspection result',
+    visit_count:'Count',
+    visit_alive:'Condition',
+    alive:'Alive', dead:'Dead',
+    visit_actions:'Actions',
+    act_bait:'Replace bait', act_insert:'Replace insert', act_disinfect:'Disinfect',
+    act_glue:'Replace glue board', act_lamp:'Replace lamp', act_clean:'Clean',
+    photo_req:'Photo required', photo_take:'Take photo', photo_retake:'Retake',
+    anomaly:'Anomaly', comment:'Comment',
+    device_state:'Device condition', state_ok:'Intact', state_lost:'Missing',
+    save_next:'Save and continue',
+    tab_rounds:'Rounds', tab_calendar:'Calendar',
+    rounds_title:'Round status today',
+    rounds_checked:'Checked', rounds_pending:'Not checked',
+    cal_title:'Inspection calendar',
+    cal_rule_rodent:'Mouse/bait stations: at least 2 times per week',
+    cal_rule_company:'Pest control company: at least once per month',
+    cal_week:'This week (rodents)',
+    cal_month:'This month (company)',
+    cal_add_company:'Mark company inspection',
+    cal_done:'done', cal_need:'required',
+    sync_api:'Shared DB (LAN)', sync_local:'Local only',
+    lang:'Language',
+  },
+  az: {
+    app_title:'Traply',
+    app_sub:'Zərərvericilərə nəzarət · obyekt planları · QR dolanma · eşiklər və trendlər',
+    login_title:'Traply — giriş',
+    login_hint:'Login və şifrəni administrator verir',
+    login_user:'Login',
+    login_pass:'Şifrə',
+    login_btn:'Daxil ol',
+    login_err:'Yanlış login və ya şifrə',
+    login_demo:'Demo: admin/admin · supervisor/super · tech1/tech1 · client/client',
+    logout:'çıxış',
+    role_admin:'Admin', role_supervisor:'Supervayzer', role_tech:'Texnik', role_client:'Müştəri',
+    tab_dashboard:'Panel', tab_map:'Cihaz xəritəsi', tab_trends:'Trendlər', tab_reports:'Hesabatlar',
+    tab_locations:'Lokasiyalar', tab_settings:'Parametrlər', tab_thresholds:'Eşiklər', tab_audit:'Audit',
+    tab_plan:'Obyekt planı', tab_zones:'Zonalar', tab_devices:'Cihazlar', tab_users:'İstifadəçilər', tab_map_short:'Xəritə',
+    users_title:'İstifadəçilər və giriş',
+    users_hint:'Hər istifadəçi öz login və şifrəsi ilə daxil olur. Rol girişi müəyyən edir: Admin, Supervayzer, Texnik, Müştəri.',
+    users_add:'İstifadəçi əlavə et', users_edit:'Redaktə', users_save:'Yadda saxla', users_reset:'Formanı sıfırla',
+    users_name:'Ad', users_role:'Rol', users_login:'Login', users_pass:'Şifrə',
+    users_change:'Dəyiş', users_disable:'Deaktiv et', users_enable:'Aktiv et', users_delete:'Sil',
+    users_disabled:'deaktiv', users_login_label:'login',
+    denied:'Giriş qadağandır', no_sections:'Rolunuz üçün mövcud bölmə yoxdur',
+    section_denied:'Bölmə rolunuz üçün əlçatan deyil',
+    need_perm:'Kifayət qədər hüquq yoxdur',
+    save:'Yadda saxla', cancel:'Ləğv et', close:'Bağla', refresh:'Yenilə',
+    plan_missing:'Obyekt planı hələ yüklənməyib.',
+    plan_admin_hint:'Anbar xəritəsini yükləmək üçün «Obyekt planı» bölməsinə keçin.',
+    plan_user_hint:'Plan yükləmək və cihaz yerləşdirmək üçün proqram administratoruna müraciət edin.',
+    thresh_view_only:'Yalnız baxış: eşikləri supervayzer və admin dəyişə bilər.',
+    status_ok:'təmiz', status_activity:'aktivlik', status_damaged:'zədələnib', status_missing:'itkin / gecikmiş',
+    all_types:'Bütün növlər',
+    tech_how:'Dolanma necə işləyir',
+    tech_how_text:'Kamera cihazın QR-ini oxuyur, GPS məsafəni yoxlayır, forma cihaz növünə uyğunlaşır. Bütün ziyarətlər ümumi jurnalda yazılır.',
+    flow_1:'Növbənin başlanması və obyekt seçimi', flow_2:'Stansiya QR kodunun skanı', flow_3:'Geopozisiya və vaxt yoxlaması', flow_4:'Formanın doldurulması', flow_5:'Saxlama və davam',
+    choose_object:'Obyekt seçimi', devices_count:'cihaz', scan_qr:'Cihaz QR-ini skan et',
+    remaining:'Bu gün qalan', all_done:'Bu gün bütün nöqtələr keçilib ✓',
+    online:'onlayn', offline:'oflayn', in_queue:'növbədə',
+
+    dash_devices:'obyektdə cihazlar',
+    dash_visits_today:'bu gün ziyarətlər',
+    dash_active_inc:'aktiv hadisələr',
+    dash_overdue:'yoxlama gecikib',
+    dash_trend30:'Aktivlik trendi, 30 gün',
+    dash_by_zone:'Zonalar üzrə aktivlik',
+    dash_visit_log:'Ziyarət jurnalı',
+    alert_threshold:'Eşik aşıldı',
+    alert_shift:'Növbə eşiği',
+    alert_device:'Cihaz',
+    alert_damaged:'zədələnib',
+    alert_missing:'itkin',
+    alert_ack:'Təsdiq et',
+    col_device:'Cihaz',
+    col_type:'Növ',
+    col_time:'Vaxt',
+    col_result:'Nəticə',
+    col_tech:'Texnik',
+    col_photo:'Foto',
+    col_zone:'Zona',
+    col_hits:'İşə düşmə',
+    col_species:'Növ',
+    col_threshold:'Eşik (ziyarətə görə)',
+    col_location:'Lokasiya',
+    col_devices:'Cihazlar',
+    col_visits:'Ziyarətlər',
+    col_incidents:'Hadisələr',
+    col_open_alerts:'Açıq xəbərdarlıqlar',
+    col_name:'Ad',
+    empty_visits:'Bu obyektdə hələ ziyarət yoxdur.',
+    empty_visits_dev:'Hələ ziyarət yoxdur.',
+    empty_audit:'Hələ dəyişiklik yoxdur.',
+    chart_incidents:'Hadisələr',
+    trends_30:'30 günlük aktivlik',
+    trends_zones:'Zonalar üzrə',
+    trends_pest:'Zərərverici növünə görə',
+    trends_hot:'İsti cihazlar',
+    map_title:'Cihaz xəritəsi',
+    thresh_title:'İşə düşmə eşikləri',
+    thresh_hint:'Ziyarətdə say eşiyə çatanda xəbərdarlıq yaranır və servis hesabatında qeyd olunur.',
+    thresh_shift:'Obyekt üzrə növbə hadisə eşiği',
+    reports_title:'Servis hesabatı',
+    reports_hint:'Bu günün növbəsi üzrə icmal. Çap/PDF üçün hazırdır (Ctrl+P).',
+    reports_btn:'Hesabat yarat və aç',
+    reports_sched:'Email üzrə planlı hesabatlar',
+    reports_day:'Həftənin günü',
+    reports_time:'Vaxt',
+    reports_auto:'İcmal hesabatı avtomatik göndər',
+    loc_title:'Mənim lokasiyalarım',
+    loc_hint:'Bir hesab girişi — şəbəkənin bütün lokasiyalarına giriş. Obyekti yuxarı sağ seçicidən dəyişin.',
+    settings_title:'Bildirişlər',
+    settings_email:'Yeni xəbərdarlıqda email',
+    settings_sms:'SMS (mərhələ 2, demoda yoxdur)',
+    settings_push:'Brauzer push bildirişləri',
+    audit_title:'Dəyişiklik jurnalı',
+    plan_title:'Obyekt planı',
+    plan_upload_hint:'Anbar planı şəkli yükləyin (PNG/JPG). Bütün rollar üçün cihaz xəritəsinin fonu olacaq.',
+    zones_title:'Zonalar',
+    devices_title:'Cihazlar',
+    mon:'Bazar ertəsi', tue:'Çərşənbə axşamı', wed:'Çərşənbə', thu:'Cümə axşamı', fri:'Cümə',
+    report_service:'Servis hesabatı',
+    report_address:'Ünvan',
+    report_contacts:'Əlaqə',
+    report_date:'Tarix',
+    report_incidents:'Hadisələr',
+    report_full_log:'Tam ziyarət jurnalı',
+    report_overdue:'gecikmiş',
+
+    progress_today:'Bu gün irəliləyiş',
+    checked_today:'Bu gün yoxlanılıb',
+    cam_hint:'Kameranı cihazın QR koduna yönəldin',
+    manual_code:'Və ya cihaz nömrəsini əl ilə daxil edin',
+    confirm_num:'Nömrəni təsdiq et',
+    geo_checking:'Yerləşmə müəyyən edilir…',
+    geo_manual:'İştirakımı əl ilə təsdiq edirəm',
+    geo_unsupported:'Geolokasiya dəstəklənmir',
+    open_form:'Formanı aç',
+    back_list:'Siyahıya qayıt',
+    visit_result:'Yoxlama nəticəsi',
+    visit_count:'Say',
+    visit_alive:'Vəziyyət',
+    alive:'Canlı', dead:'Ölü',
+    visit_actions:'Əməliyyatlar',
+    act_bait:'Yem dəyişimi', act_insert:'Əlavə dəyişimi', act_disinfect:'Dezinfeksiya',
+    act_glue:'Yapışqan dəyişimi', act_lamp:'Lampa dəyişimi', act_clean:'Təmizləmə',
+    photo_req:'Foto mütləqdir', photo_take:'Foto çək', photo_retake:'Yenidən çək',
+    anomaly:'Anomaliya', comment:'Şərh',
+    device_state:'Cihaz vəziyyəti', state_ok:'Salmat', state_lost:'İtkin',
+    save_next:'Saxla və davam et',
+    tab_rounds:'Dolanmalar', tab_calendar:'Təqvim',
+    rounds_title:'Bu gün dolanma statusu',
+    rounds_checked:'Yoxlanılıb', rounds_pending:'Yoxlanılmayıb',
+    cal_title:'Yoxlama təqvimi',
+    cal_rule_rodent:'Siçan/yem stansiyaları: həftədə minimum 2 dəfə',
+    cal_rule_company:'Deratizasiya şirkəti: ayda minimum 1 dəfə',
+    cal_week:'Bu həftə (gəmiricilər)',
+    cal_month:'Bu ay (şirkət)',
+    cal_add_company:'Şirkət yoxlamasını qeyd et',
+    cal_done:'yerinə yetirilib', cal_need:'lazımdır',
+    sync_api:'Ümumi baza (LAN)', sync_local:'Yalnız lokal',
+    lang:'Dil',
+  }
+};
+
+function t(key){
+  const lang = (state && state.lang) || localStorage.getItem('obhod:lang') || 'ru';
+  const pack = I18N[lang] || I18N.ru;
+  return pack[key] != null ? pack[key] : (I18N.ru[key] != null ? I18N.ru[key] : key);
+}
+function setLang(lang){
+  if(!I18N[lang]) return;
+  if(state) state.lang = lang;
+  try{ localStorage.setItem('obhod:lang', lang); }catch(e){}
+  document.documentElement.lang = lang === 'az' ? 'az' : (lang === 'en' ? 'en' : 'ru');
+  document.title = t('app_title') + ' — Pest Control';
+  const brandP = document.querySelector('.brand p');
+  const brandH = document.querySelector('.brand h1');
+  if(brandH) brandH.textContent = t('app_title');
+  if(brandP) brandP.textContent = t('app_sub');
+  if(state) { saveState(); renderRoot(); }
+  else renderLogin();
+}
+function langBarHtml(){
+  const cur = (state && state.lang) || localStorage.getItem('obhod:lang') || 'ru';
+  return `<div class="langbar" title="${t('lang')}">
+    <button class="${cur==='ru'?'active':''}" onclick="setLang('ru')">RU</button>
+    <button class="${cur==='en'?'active':''}" onclick="setLang('en')">EN</button>
+    <button class="${cur==='az'?'active':''}" onclick="setLang('az')">AZ</button>
+  </div>`;
+}
+
+
+/* =========================================================
+   STATE + PERSISTENCE
+========================================================= */
+const hasStorage = (typeof window.storage !== 'undefined');
+let state = null;
+let outbox = [];
+let chartRefs = {};
+
+function defaultZones(){
+  return [
+    {id:'Z1', name:'Приёмка / доки', x:2, y:4, w:34, h:26},
+    {id:'Z2', name:'Холодильная камера', x:2, y:34, w:34, h:24},
+    {id:'Z3', name:'Стеллажи, сух. хран.', x:40, y:4, w:34, h:54},
+    {id:'Z4', name:'Зона химии (GDP)', x:78, y:4, w:20, h:26},
+    {id:'Z5', name:'Зона отходов', x:78, y:34, w:20, h:24},
+  ];
+}
+function seedDevices(){
+  const z = defaultZones();
+  return [
+    {id:'D44', number:'44', type:'rodent_snap', name:'Приёмка, дверь дока', zoneId:'Z1', x:14, y:16, status:'ok', lastVisitAt:'сегодня, 07:12', lastTech:'Г. Гелашвили'},
+    {id:'D45', number:'45', type:'rodent_bait', name:'Холод. камера, вход', zoneId:'Z2', x:14, y:46, status:'activity', lastVisitAt:'сегодня, 08:03', lastTech:'Г. Гелашвили'},
+    {id:'D46', number:'46', type:'rodent_monitor', name:'Стеллаж A1', zoneId:'Z3', x:52, y:14, status:'ok', lastVisitAt:'сегодня, 07:20', lastTech:'Г. Гелашвили'},
+    {id:'D47', number:'47', type:'fly_ilt', name:'Стеллаж B3, потолок', zoneId:'Z3', x:64, y:24, status:'ok', lastVisitAt:'вчера, 18:40', lastTech:'—'},
+    {id:'D48', number:'48', type:'insect_monitor', name:'Стеллаж C2', zoneId:'Z3', x:52, y:44, status:'overdue', lastVisitAt:'2 дня назад', lastTech:'Н. Костава'},
+    {id:'D49', number:'49', type:'other', name:'Мойка рук, проход', zoneId:'Z3', x:66, y:50, status:'ok', lastVisitAt:'сегодня, 07:34', lastTech:'Г. Гелашвили'},
+    {id:'D50', number:'50', type:'rodent_bait', name:'Химсклад, вход', zoneId:'Z4', x:88, y:14, status:'ok', lastVisitAt:'сегодня, 08:10', lastTech:'Н. Костава'},
+    {id:'D51', number:'51', type:'fly_ilt', name:'Химсклад, угол', zoneId:'Z4', x:88, y:26, status:'overdue', lastVisitAt:'вчера, 17:55', lastTech:'—'},
+    {id:'D52', number:'52', type:'other', name:'Контейнеры, вход', zoneId:'Z5', x:88, y:44, status:'ok', lastVisitAt:'сегодня, 08:22', lastTech:'Н. Костава'},
+    {id:'D53', number:'53', type:'rodent_snap', name:'Контейнеры, зад.', zoneId:'Z5', x:88, y:56, status:'overdue', lastVisitAt:'3 дня назад', lastTech:'—'},
+  ];
+}
+function defaultState(){
+  return {
+    role:null,
+    currentUserId:null,
+    lang: localStorage.getItem('obhod:lang') || 'ru',
+    activeLocationId:'L1',
+    uiTab:{ client:'dashboard', supervisor:'dashboard', admin:'plan', tech:'tech' },
+    users:[
+      {id:'U1', login:'admin', password:'admin', name:'Администратор', role:'admin', active:true},
+      {id:'U2', login:'supervisor', password:'super', name:'Супервайзер QA', role:'supervisor', active:true},
+      {id:'U3', login:'tech1', password:'tech1', name:'Н. Костава', role:'tech', active:true},
+      {id:'U4', login:'tech2', password:'tech2', name:'Г. Гелашвили', role:'tech', active:true},
+      {id:'U5', login:'client', password:'client', name:'Client portal', role:'client', active:true},
+    ],
+    nextUserId:6,
+    locations:[
+      {id:'L1', name:'Локация «Центральный склад»', address:'—', contacts:'—', tz:'GMT+4', planImage:null},
+      {id:'L2', name:'Локация «Северный склад»', address:'—', contacts:'—', tz:'GMT+4', planImage:null},
+    ],
+    zones:{ L1:defaultZones(), L2:[] },
+    devices:{ L1:seedDevices(), L2:[] },
+    thresholds:{
+      L1:{ 'Мышь':3,'Крыса':2,'Таракан':5,'Муха/летающие':10,'Другое насекомое':5, shift:3 },
+      L2:{ 'Мышь':3,'Крыса':2,'Таракан':5,'Муха/летающие':10,'Другое насекомое':5, shift:3 },
+    },
+    visits:[
+      {id:'V1', locationId:'L1', deviceId:'D50', zoneId:'Z4', time:'сегодня, 08:10', result:'clean', summary:'Чисто', tech:'Н. Костава', photo:null, day:todayISO()},
+      {id:'V2', locationId:'L1', deviceId:'D52', zoneId:'Z5', time:'сегодня, 08:22', result:'clean', summary:'Чисто', tech:'Н. Костава', photo:null, day:todayISO()},
+      {id:'V3', locationId:'L1', deviceId:'D45', zoneId:'Z2', time:'сегодня, 08:03', result:'activity', summary:'Мышь — 1, живая', tech:'Г. Гелашвили', photo:null, pest:'Мышь', count:1, day:todayISO()},
+      {id:'V4', locationId:'L1', deviceId:'D49', zoneId:'Z3', time:'сегодня, 07:34', result:'clean', summary:'ОК', tech:'Г. Гелашвили', photo:null, day:todayISO()},
+      {id:'V5', locationId:'L1', deviceId:'D46', zoneId:'Z3', time:'сегодня, 07:20', result:'clean', summary:'Чисто', tech:'Г. Гелашвили', photo:null, day:todayISO()},
+      {id:'V6', locationId:'L1', deviceId:'D44', zoneId:'Z1', time:'сегодня, 07:12', result:'clean', summary:'Чисто', tech:'Г. Гелашвили', photo:null, day:todayISO()},
+    ],
+    alerts:[
+      {id:'A1', locationId:'L1', type:'threshold', deviceId:'D45', pest:'Мышь', count:1, time:'сегодня, 08:03', ack:false},
+    ],
+    auditLog:[
+      {time:'вчера, 09:00', user:'admin', action:'Создан объект «Локация «Центральный склад»»'},
+    ],
+    notif:{ email:true, sms:false, push:true, schedEnabled:true, schedDay:'Понедельник', schedTime:'08:00' },
+    nextIdCounter:54,
+    scheduleEvents:[],
+    scheduleRules:{ rodentPerWeek:2, companyPerMonth:1 },
+  };
+}
+function todayISO(){
+  const d = new Date();
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function localeTag(){ return (state&&state.lang==='az')?'az-AZ':(state&&state.lang==='en')?'en-GB':'ru-RU'; }
+function formatDateTime(isoOrDate){
+  try{
+    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    if(isNaN(d.getTime())) return String(isoOrDate||'—');
+    return d.toLocaleString(localeTag(), {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  }catch(e){ return String(isoOrDate||'—'); }
+}
+function formatTimeNow(){ return formatDateTime(new Date()); }
+function isDeviceCheckedToday(dev){
+  if(!dev) return false;
+  if(dev.lastVisitDay && dev.lastVisitDay === todayISO()) return true;
+  const vis = state.visits||[];
+  return vis.some(v=>v.deviceId===dev.id && v.day===todayISO() && v.locationId===(dev.locationId||state.activeLocationId));
+}
+function deviceProgress(locId){
+  const id = locId || state.activeLocationId;
+  const devs = state.devices[id]||[];
+  const checked = devs.filter(d=>isDeviceCheckedToday(d));
+  const pending = devs.filter(d=>!isDeviceCheckedToday(d));
+  return { total:devs.length, checked, pending, done:checked.length, left:pending.length };
+}
+function startOfWeek(d){
+  const x = new Date(d); const day = (x.getDay()+6)%7; // Mon=0
+  x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
+}
+function isoFromDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function weekRodentChecks(locId){
+  const start = startOfWeek(new Date());
+  const days=[]; for(let i=0;i<7;i++){ const x=new Date(start); x.setDate(start.getDate()+i); days.push(isoFromDate(x)); }
+  const rodentTypes = ['rodent_snap','rodent_bait','rodent_monitor'];
+  const devs = (state.devices[locId]||[]).filter(d=>rodentTypes.includes(d.type));
+  const vis = (state.visits||[]).filter(v=>v.locationId===locId && days.includes(v.day));
+  // count unique days with at least one rodent check
+  const daysWith = new Set(vis.filter(v=>{
+    const d = (state.devices[locId]||[]).find(x=>x.id===v.deviceId);
+    return d && rodentTypes.includes(d.type);
+  }).map(v=>v.day));
+  return { required:2, done:daysWith.size, days:daysWith, devices:devs.length };
+}
+function monthCompanyCheck(locId){
+  const now = new Date();
+  const ym = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const events = (state.scheduleEvents||[]).filter(e=>e.locationId===locId && e.type==='company' && (e.date||'').startsWith(ym));
+  return { required:1, done:events.length, events };
+}
+
+async function loadState(){
+  // 1) Shared LAN API (server.py → data/state.json)
+  try{
+    if(location.protocol.startsWith('http')){
+      const res = await fetch('/api/state', {cache:'no-store'});
+      if(res.ok){
+        const data = await res.json();
+        if(data && data.locations){ state = data; migrateUsers(); state._sync='api'; return; }
+      }
+    }
+  }catch(e){ console.warn('API load skip', e); }
+  try{
+    if(hasStorage){
+      const r = await window.storage.get('obhod:platform', true);
+      if(r && r.value){ state = JSON.parse(r.value); migrateUsers(); state._sync='local'; return; }
+    }
+  }catch(e){}
+  try{
+    const raw = localStorage.getItem('obhod:platform');
+    if(raw){ state = JSON.parse(raw); migrateUsers(); state._sync='local'; return; }
+  }catch(e){}
+  state = defaultState();
+  state._sync = location.protocol.startsWith('http') ? 'api-new' : 'local';
+}
+function migrateUsers(){
+  if(!state.users || !state.users.length){
+    const d = defaultState();
+    state.users = d.users;
+    state.nextUserId = d.nextUserId;
+  }
+  if(state.currentUserId && !state.users.find(u=>u.id===state.currentUserId)){
+    state.currentUserId = null; state.role = null;
+  }
+  if(!state.uiTab) state.uiTab = { client:'dashboard', supervisor:'dashboard', admin:'plan', tech:'tech' };
+  if(!state.lang) state.lang = localStorage.getItem('obhod:lang') || 'ru';
+  if(!state.scheduleEvents) state.scheduleEvents = [];
+  if(!state.scheduleRules) state.scheduleRules = { rodentPerWeek:2, companyPerMonth:1 };
+}
+async function saveState(){
+  // strip runtime-only
+  const payload = JSON.parse(JSON.stringify(state));
+  delete payload._sync;
+  try{
+    if(location.protocol.startsWith('http')){
+      const res = await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if(res.ok){ state._sync='api'; }
+    }
+  }catch(e){ console.warn('API save skip', e); }
+  try{
+    if(hasStorage) await window.storage.set('obhod:platform', JSON.stringify(payload), true);
+  }catch(e){ console.warn('storage save failed', e); }
+  try{ localStorage.setItem('obhod:platform', JSON.stringify(payload)); }catch(e){}
+}
+function logAudit(action){
+  const u = currentUser();
+  state.auditLog.unshift({ time:nowFull(), user: u ? (u.login+' / '+u.role) : (state.role||'?'), action });
+  saveState();
+}
+function currentUser(){
+  if(!state || !state.currentUserId) return null;
+  return (state.users||[]).find(u=>u.id===state.currentUserId) || null;
+}
+function roleLabel(r){
+  return ({admin:t('role_admin'), supervisor:t('role_supervisor'), tech:t('role_tech'), client:t('role_client')})[r] || r;
+}
+
+/* =========================================================
+   RBAC — role-based access control
+========================================================= */
+const PERMS = {
+  // read
+  'view.dashboard':   ['admin','supervisor','client'],
+  'view.map':         ['admin','supervisor','client'],
+  'view.trends':      ['admin','supervisor','client'],
+  'view.reports':     ['admin','supervisor','client'],
+  'view.locations':   ['admin','supervisor','client'],
+  'view.settings':    ['client'],
+  'view.thresholds':  ['admin','supervisor'],
+  'view.audit':       ['admin','supervisor'],
+  'view.rounds':      ['admin','supervisor'],
+  'view.calendar':    ['admin','supervisor'],
+  'edit.schedule':    ['admin','supervisor'],
+  'view.plan':        ['admin'],
+  'view.zones':       ['admin'],
+  'view.devices':     ['admin'],
+  'view.users':       ['admin'],
+  'view.tech':        ['tech'],
+  // write
+  'edit.plan':        ['admin'],
+  'edit.zones':       ['admin'],
+  'edit.devices':     ['admin'],
+  'edit.thresholds':  ['admin','supervisor'],
+  'edit.users':       ['admin'],
+  'edit.locations':   ['admin'],
+  'edit.notif':       ['client','supervisor','admin'],
+  'edit.visits':      ['tech'],
+  'ack.alerts':       ['admin','supervisor','client'],
+};
+
+function TABS_BY_ROLE(){
+  return {
+    client:     [['dashboard',t('tab_dashboard')],['map',t('tab_map')],['trends',t('tab_trends')],['reports',t('tab_reports')],['locations',t('tab_locations')],['settings',t('tab_settings')]],
+    supervisor: [['dashboard',t('tab_dashboard')],['rounds',t('tab_rounds')],['calendar',t('tab_calendar')],['map',t('tab_map')],['trends',t('tab_trends')],['thresholds',t('tab_thresholds')],['reports',t('tab_reports')],['locations',t('tab_locations')],['audit',t('tab_audit')]],
+    admin:      [['plan',t('tab_plan')],['zones',t('tab_zones')],['devices',t('tab_devices')],['thresholds',t('tab_thresholds')],['users',t('tab_users')],['audit',t('tab_audit')],['dashboard',t('tab_dashboard')],['map',t('tab_map_short')],['reports',t('tab_reports')]],
+    tech:       [],
+  };
+}
+
+function can(perm){
+  const u = currentUser();
+  if(!u || u.active===false) return false;
+  const list = PERMS[perm];
+  if(!list) return false;
+  return list.includes(u.role);
+}
+function requirePerm(perm, silent){
+  if(can(perm)) return true;
+  if(!silent) alert(t('need_perm') + ': «' + perm + '»');
+  return false;
+}
+function allowedTabs(){
+  const u = currentUser();
+  if(!u) return [];
+  const tb = TABS_BY_ROLE(); return tb[u.role] || tb.client;
+}
+
+function nowTime(){ return new Date().toTimeString().slice(0,5); }
+function nowFull(){ return new Date().toLocaleString('ru-RU'); }
+
+/* =========================================================
+   GEO HELPERS
+========================================================= */
+function distanceMeters(lat1,lon1,lat2,lon2){
+  const R=6371000, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function offsetCoord(base, dxMeters, dyMeters){
+  const dLat = dyMeters/111320;
+  const dLng = dxMeters/(111320*Math.cos(base.lat*Math.PI/180));
+  return { lat: base.lat+dLat, lng: base.lng+dLng };
+}
+let baseCoord = { lat:40.4093, lng:49.8671 };
+function deviceCoord(dev){
+  const dx = (dev.x/100)*40 - 20, dy=(dev.y/100)*30 - 15;
+  return offsetCoord(baseCoord, dx, dy);
+}
+
+/* =========================================================
+   HELPERS: current location data
+========================================================= */
+function curLoc(){ return state.locations.find(l=>l.id===state.activeLocationId); }
+function curDevices(){ return state.devices[state.activeLocationId] || []; }
+function curZones(){ return state.zones[state.activeLocationId] || []; }
+function curThresholds(){ return state.thresholds[state.activeLocationId]; }
+function curVisits(){ return state.visits.filter(v=>v.locationId===state.activeLocationId); }
+function curAlerts(){ return state.alerts.filter(a=>a.locationId===state.activeLocationId); }
+function statusMeta(s){
+  return { ok:{c:'var(--success)', l:t('status_ok')}, activity:{c:'var(--danger)', l:t('status_activity')},
+    damaged:{c:'var(--amber)', l:t('status_damaged')}, missing:{c:'var(--grey)', l:t('status_missing')}, overdue:{c:'var(--grey)', l:t('status_missing')} }[s] || {c:'var(--grey)',l:s};
+}
+
+/* =========================================================
+   HEADER / TABS / ROOT RENDER
+========================================================= */
+function renderLogin(){
+  document.getElementById('roleBar').innerHTML = langBarHtml();
+  document.getElementById('locSelect').innerHTML = '';
+  document.getElementById('tabsHost').innerHTML = '';
+  const brandH = document.querySelector('.brand h1');
+  const brandP = document.querySelector('.brand p');
+  if(brandH) brandH.textContent = t('app_title');
+  if(brandP) brandP.textContent = t('app_sub');
+  document.title = t('app_title') + ' — Pest Control';
+  document.getElementById('content').innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <h2>${t('login_title')}</h2>
+        <p style="margin:0 0 16px; color:var(--ink-soft); font-size:13px;">${t('login_hint')}</p>
+        <div class="fieldrow full"><div><label>${t('login_user')}</label><input type="text" id="loginUser" autocomplete="username" placeholder="login"></div></div>
+        <div class="fieldrow full"><div><label>${t('login_pass')}</label><input type="password" id="loginPass" autocomplete="current-password" placeholder="••••"></div></div>
+        <div class="login-err" id="loginErr"></div>
+        <button class="btn block" onclick="doLogin()">${t('login_btn')}</button>
+        <p class="footnote" style="margin-top:14px; line-height:1.5;">${t('login_demo')}</p>
+      </div>
+    </div>`;
+  setTimeout(()=>{
+    const p = document.getElementById('loginPass');
+    if(p) p.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  }, 50);
+}
+function doLogin(){
+  const login = (document.getElementById('loginUser')?.value||'').trim();
+  const pass = document.getElementById('loginPass')?.value||'';
+  const err = document.getElementById('loginErr');
+  const u = (state.users||[]).find(x=>x.login===login && x.active!==false);
+  if(!u || u.password!==pass){
+    if(err) err.textContent = t('login_err');
+    return;
+  }
+  state.currentUserId = u.id;
+  state.role = u.role;
+  logAudit('Вход в систему');
+  saveState();
+  renderRoot();
+}
+function doLogout(){
+  logAudit('Выход из системы');
+  state.currentUserId = null;
+  state.role = null;
+  saveState();
+  renderRoot();
+}
+function renderHeader(){
+  const u = currentUser();
+  const brandH = document.querySelector('.brand h1');
+  const brandP = document.querySelector('.brand p');
+  if(brandH) brandH.textContent = t('app_title');
+  if(brandP) brandP.textContent = t('app_sub');
+  document.title = t('app_title') + ' — Pest Control';
+  if(!u){
+    document.getElementById('roleBar').innerHTML = langBarHtml();
+    document.getElementById('locSelect').innerHTML = '';
+    return;
+  }
+  document.getElementById('roleBar').innerHTML = langBarHtml() + `
+    <button class="active" style="cursor:default; margin-left:8px;">${roleLabel(u.role)}</button>
+    <button onclick="doLogout()" title="${t('logout')}">${u.name||u.login} · ${t('logout')}</button>`;
+  document.getElementById('locSelect').innerHTML = state.locations.map(l=>
+    `<option value="${l.id}" ${l.id===state.activeLocationId?'selected':''}>${l.name}</option>`).join('');
+}
+function setLocation(id){ state.activeLocationId=id; renderRoot(); }
+
+function renderRoot(){
+  if(!state.currentUserId || !state.role || !currentUser()){
+    renderLogin();
+    return;
+  }
+  renderHeader();
+  const tabsHost = document.getElementById('tabsHost');
+  const content = document.getElementById('content');
+  if(state.role==='tech'){
+    if(!can('view.tech')){ doLogout(); return; }
+    tabsHost.innerHTML=''; content.innerHTML=''; renderTechRoot(content); return;
+  }
+
+  const tabs = allowedTabs();
+  if(!tabs.length){ content.innerHTML='<div class="panel"><div class="empty">'+t('no_sections')+'</div></div>'; return; }
+  if(!state.uiTab[state.role] || !tabs.find(t=>t[0]===state.uiTab[state.role])) state.uiTab[state.role]=tabs[0][0];
+  // guard: tab must be allowed
+  if(!tabs.find(t=>t[0]===state.uiTab[state.role])) state.uiTab[state.role]=tabs[0][0];
+  tabsHost.innerHTML = `<div class="tabs">${tabs.map(([id,l])=>`<button class="${state.uiTab[state.role]===id?'active':''}" onclick="setTab('${id}')">${l}</button>`).join('')}</div>`;
+  renderTabContent(content);
+}
+function setTab(id){
+  const tabs = allowedTabs();
+  if(!tabs.find(t=>t[0]===id)){ alert(t('section_denied')); return; }
+  state.uiTab[state.role]=id; renderRoot();
+}
+
+function renderTabContent(content){
+  const tab = state.uiTab[state.role];
+  const viewPerm = {
+    dashboard:'view.dashboard', map:'view.map', trends:'view.trends', reports:'view.reports',
+    locations:'view.locations', settings:'view.settings', thresholds:'view.thresholds', audit:'view.audit',
+    plan:'view.plan', zones:'view.zones', devices:'view.devices', users:'view.users', rounds:'view.rounds', calendar:'view.calendar',
+  };
+  if(viewPerm[tab] && !can(viewPerm[tab])){
+    content.innerHTML = '<div class="panel"><div class="empty">'+t('denied')+'</div></div>';
+    return;
+  }
+  const map = {
+    dashboard:renderDashboardTab, map:renderMapTab, trends:renderTrendsTab, reports:renderReportsTab,
+    locations:renderLocationsTab, settings:renderSettingsTab, thresholds:renderThresholdsTab, audit:renderAuditTab,
+    plan:renderAdminPlanTab, zones:renderAdminZonesTab, devices:renderAdminDevicesTab, users:renderUsersTab, rounds:renderRoundsTab, calendar:renderCalendarTab,
+  };
+  (map[tab] || renderDashboardTab)(content);
+}
+
+/* =========================================================
+   USERS (ADMIN)
+========================================================= */
+function renderUsersTab(el){
+  if(!can('view.users')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const users = state.users || [];
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('users_title')}</h3>
+      <p class="footnote" style="margin-bottom:12px;">${t('users_hint')}</p>
+      <div id="usersList">${users.map(u=>`
+        <div class="user-row">
+          <div>
+            <b>${u.name||u.login}</b>
+            <span class="badge-role ${u.role}">${roleLabel(u.role)}</span>
+            ${u.active===false?`<span style="color:var(--danger); font-size:11px;"> · ${t('users_disabled')}</span>`:''}
+            <div class="meta">${t('users_login_label')}: <span class="mono">${u.login}</span></div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn small ghost" onclick="editUser('${u.id}')">${t('users_change')}</button>
+            <button class="btn small ghost" onclick="toggleUserActive('${u.id}')">${u.active===false?t('users_enable'):t('users_disable')}</button>
+            ${u.role!=='admin'||users.filter(x=>x.role==='admin'&&x.active!==false).length>1
+              ? `<button class="btn small danger" onclick="deleteUser('${u.id}')">${t('users_delete')}</button>` : ''}
+          </div>
+        </div>`).join('')||'<div class="empty">—</div>'}
+      </div>
+    </div>
+    <div class="panel" id="userFormPanel">
+      <h3 id="userFormTitle">${t('users_add')}</h3>
+      <input type="hidden" id="editUserId" value="">
+      <div class="fieldrow">
+        <div><label>${t('users_name')}</label><input type="text" id="ufName" placeholder=""></div>
+        <div><label>${t('users_role')}</label>
+          <select id="ufRole">
+            <option value="admin">${t('role_admin')}</option>
+            <option value="supervisor">${t('role_supervisor')}</option>
+            <option value="tech">${t('role_tech')}</option>
+            <option value="client">${t('role_client')}</option>
+          </select>
+        </div>
+      </div>
+      <div class="fieldrow">
+        <div><label>${t('users_login')}</label><input type="text" id="ufLogin" class="mono" placeholder="login" autocomplete="off"></div>
+        <div><label>${t('users_pass')}</label><input type="text" id="ufPass" class="mono" placeholder="" autocomplete="off"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn small" onclick="saveUserForm()">${t('users_save')}</button>
+        <button class="btn small ghost" onclick="resetUserForm()">${t('users_reset')}</button>
+      </div>
+    </div>`;
+}
+function resetUserForm(){
+  document.getElementById('editUserId').value = '';
+  document.getElementById('userFormTitle').textContent = t('users_add');
+  document.getElementById('ufName').value = '';
+  document.getElementById('ufLogin').value = '';
+  document.getElementById('ufPass').value = '';
+  document.getElementById('ufRole').value = 'tech';
+}
+function editUser(id){
+  const u = state.users.find(x=>x.id===id); if(!u) return;
+  document.getElementById('editUserId').value = u.id;
+  document.getElementById('userFormTitle').textContent = t('users_edit')+': '+u.login;
+  document.getElementById('ufName').value = u.name||'';
+  document.getElementById('ufLogin').value = u.login;
+  document.getElementById('ufPass').value = u.password;
+  document.getElementById('ufRole').value = u.role;
+  document.getElementById('userFormPanel').scrollIntoView({behavior:'smooth'});
+}
+function saveUserForm(){
+  if(!requirePerm('edit.users')) return;
+  const id = document.getElementById('editUserId').value;
+  const name = document.getElementById('ufName').value.trim();
+  const login = document.getElementById('ufLogin').value.trim();
+  const password = document.getElementById('ufPass').value;
+  const role = document.getElementById('ufRole').value;
+  if(!login || !password){ alert('Укажите логин и пароль'); return; }
+  const dup = state.users.find(x=>x.login===login && x.id!==id);
+  if(dup){ alert('Такой логин уже занят'); return; }
+  if(id){
+    const u = state.users.find(x=>x.id===id);
+    if(!u) return;
+    // нельзя снять последнего активного админа
+    if(u.role==='admin' && role!=='admin'){
+      const admins = state.users.filter(x=>x.role==='admin' && x.active!==false && x.id!==id);
+      if(!admins.length){ alert('Должен остаться хотя бы один активный админ'); return; }
+    }
+    u.name = name||login; u.login = login; u.password = password; u.role = role;
+    logAudit('Изменён пользователь '+login+' ('+roleLabel(role)+')');
+  } else {
+    const nid = 'U'+(state.nextUserId||10);
+    state.nextUserId = (state.nextUserId||10)+1;
+    state.users.push({id:nid, login, password, name:name||login, role, active:true});
+    logAudit('Создан пользователь '+login+' ('+roleLabel(role)+')');
+  }
+  saveState();
+  renderRoot();
+}
+function toggleUserActive(id){
+  if(!requirePerm('edit.users')) return;
+  const u = state.users.find(x=>x.id===id); if(!u) return;
+  if(u.active!==false){
+    if(u.role==='admin'){
+      const admins = state.users.filter(x=>x.role==='admin' && x.active!==false && x.id!==id);
+      if(!admins.length){ alert('Нельзя отключить последнего админа'); return; }
+    }
+    if(u.id===state.currentUserId){ alert('Нельзя отключить текущего пользователя'); return; }
+    u.active = false;
+    logAudit('Отключён пользователь '+u.login);
+  } else {
+    u.active = true;
+    logAudit('Включён пользователь '+u.login);
+  }
+  saveState(); renderRoot();
+}
+function deleteUser(id){
+  if(!requirePerm('edit.users')) return;
+  const u = state.users.find(x=>x.id===id); if(!u) return;
+  if(u.id===state.currentUserId){ alert('Нельзя удалить текущего пользователя'); return; }
+  if(u.role==='admin'){
+    const admins = state.users.filter(x=>x.role==='admin' && x.active!==false && x.id!==id);
+    if(!admins.length){ alert('Нельзя удалить последнего админа'); return; }
+  }
+  if(!confirm('Удалить пользователя '+u.login+'?')) return;
+  state.users = state.users.filter(x=>x.id!==id);
+  logAudit('Удалён пользователь '+u.login);
+  saveState(); renderRoot();
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+function renderDashboardTab(el){
+  const devs = curDevices(), vis = curVisits(), alerts = curAlerts().filter(a=>!a.ack);
+  const okCount = devs.filter(d=>d.status==='ok').length;
+  const activityCount = devs.filter(d=>d.status==='activity').length;
+  const overdueCount = devs.filter(d=>d.status==='overdue').length;
+  const checkedToday = vis.filter(v=>v.time && v.time.includes('сегодня')).length;
+
+  let html = alerts.map(a=>renderAlertBar(a)).join('');
+  html += `
+    <div class="stats">
+      <div class="stat"><div class="num">${devs.length}</div><div class="lbl">${t('dash_devices')}</div></div>
+      <div class="stat"><div class="num">${checkedToday}</div><div class="lbl">${t('dash_visits_today')}</div></div>
+      <div class="stat danger"><div class="num">${activityCount}</div><div class="lbl">${t('dash_active_inc')}</div></div>
+      <div class="stat grey"><div class="num">${overdueCount}</div><div class="lbl">${t('dash_overdue')}</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>${t('dash_trend30')}</h3><div class="chartbox"><canvas id="chDash1"></canvas></div></div>
+      <div class="panel"><h3>${t('dash_by_zone')}</h3><div class="chartbox"><canvas id="chDash2"></canvas></div></div>
+    </div>
+    <div class="panel"><h3>${t('dash_visit_log')}</h3>${renderVisitTable(vis.slice(0,10))}</div>
+  `;
+  el.innerHTML = html;
+  drawTrendChart('chDash1', vis);
+  drawZoneChart('chDash2', vis);
+}
+function renderAlertBar(a){
+  if(a.type==='threshold') return `<div class="alertbar"><span>⚠ <b>${t('alert_threshold')}:</b> ${a.pest} — ${a.count} · ${deviceLabel(a.deviceId)} (${a.time})</span><button onclick="ackAlert('${a.id}')">${t('alert_ack')}</button></div>`;
+  if(a.type==='shift') return `<div class="alertbar"><span>⚠ <b>${t('alert_shift')}:</b> ${a.count} (${a.time})</span><button onclick="ackAlert('${a.id}')">${t('alert_ack')}</button></div>`;
+  if(a.type==='device') return `<div class="alertbar amber"><span>🔧 ${t('alert_device')} ${deviceLabel(a.deviceId)}: ${a.issue==='damaged'?t('alert_damaged'):t('alert_missing')} (${a.time})</span><button onclick="ackAlert('${a.id}')">${t('alert_ack')}</button></div>`;
+  return '';
+}
+function ackAlert(id){ if(!requirePerm('ack.alerts')) return; const a = state.alerts.find(x=>x.id===id); if(a){ a.ack=true; saveState(); renderRoot(); } }
+function deviceLabel(id){ const d = curDevices().find(x=>x.id===id); return d ? `№ ${d.number} (${d.name})` : id; }
+
+function renderVisitTable(vis){
+  if(!vis.length) return `<div class="empty">${t('empty_visits')}</div>`;
+  return `<table><thead><tr><th>${t('col_device')}</th><th>${t('col_type')}</th><th>${t('col_time')}</th><th>${t('col_result')}</th><th>${t('col_tech')}</th><th>${t('col_photo')}</th></tr></thead><tbody>
+    ${vis.map(v=>{
+      const d = curDevices().find(x=>x.id===v.deviceId) || {};
+      const sm = v.result==='activity' ? statusMeta('activity') : statusMeta('ok');
+      return `<tr><td class="mono">№ ${d.number||'—'}</td><td>${deviceTypes[d.type]?deviceTypes[d.type].icon+' '+deviceTypes[d.type].label:'—'}</td><td>${v.time}</td>
+      <td><span class="rowstatus" style="color:${sm.c}"><i class="dotc" style="width:7px;height:7px;border-radius:50%;background:currentColor;"></i>${v.summary}</span></td>
+      <td>${v.tech}</td><td>${v.photo?`<img class="thumb-sm" src="${v.photo}">`:'—'}</td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+/* =========================================================
+   CHARTS
+========================================================= */
+function last30Days(){
+  const arr=[]; const d=new Date();
+  for(let i=29;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); arr.push(x.toISOString().slice(0,10)); }
+  return arr;
+}
+function drawTrendChart(canvasId, vis){
+  const ctx = document.getElementById(canvasId); if(!ctx || typeof Chart==='undefined') return;
+  const days = last30Days();
+  const counts = days.map(day=>vis.filter(v=>v.day===day && v.result==='activity').length);
+  if(chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type:'line',
+    data:{ labels:days.map(d=>d.slice(5)), datasets:[{ label:t('chart_incidents'), data:counts, borderColor:'#b23a2e', backgroundColor:'rgba(178,58,46,0.12)', tension:.25, fill:true, pointRadius:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ ticks:{ maxTicksLimit:8, font:{size:10} } }, y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+}
+function drawZoneChart(canvasId, vis){
+  const ctx = document.getElementById(canvasId); if(!ctx || typeof Chart==='undefined') return;
+  const zones = curZones();
+  const counts = zones.map(z=>vis.filter(v=>v.zoneId===z.id && v.result==='activity').length);
+  if(chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:zones.map(z=>z.name), datasets:[{ data:counts, backgroundColor:'#1e5f63' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ ticks:{ font:{size:9} } }, y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+}
+function drawPestChart(canvasId, vis){
+  const ctx = document.getElementById(canvasId); if(!ctx || typeof Chart==='undefined') return;
+  const pests = {};
+  vis.filter(v=>v.result==='activity').forEach(v=>{ pests[v.pest||'Другое'] = (pests[v.pest||'Другое']||0)+ (v.count||1); });
+  const labels = Object.keys(pests); const data = Object.values(pests);
+  if(chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data, backgroundColor:'#c9a227' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+}
+
+/* =========================================================
+   TRENDS TAB
+========================================================= */
+function renderTrendsTab(el){
+  const vis = curVisits();
+  const hot = [...curDevices()].map(d=>({d, n:vis.filter(v=>v.deviceId===d.id && v.result==='activity').length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,6);
+  el.innerHTML = `
+    <div class="grid2">
+      <div class="panel"><h3>${t('trends_30')}</h3><div class="chartbox"><canvas id="chT1"></canvas></div></div>
+      <div class="panel"><h3>${t('trends_zones')}</h3><div class="chartbox"><canvas id="chT2"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>${t('trends_pest')}</h3><div class="chartbox"><canvas id="chT3"></canvas></div></div>
+      <div class="panel"><h3>${t('trends_hot')}</h3>
+        ${hot.length? `<table><thead><tr><th>${t('col_device')}</th><th>${t('col_zone')}</th><th>${t('col_hits')}</th></tr></thead><tbody>
+        ${hot.map(h=>`<tr><td>№ ${h.d.number} — ${h.d.name}</td><td>${zoneName(h.d.zoneId)}</td><td><b>${h.n}</b></td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">—</div>`}
+      </div>
+    </div>
+  `;
+  drawTrendChart('chT1', vis); drawZoneChart('chT2', vis); drawPestChart('chT3', vis);
+}
+function zoneName(id){ const z = curZones().find(z=>z.id===id); return z?z.name:'—'; }
+
+/* =========================================================
+   MAP TAB (client/supervisor read-only view)
+========================================================= */
+let mapTypeFilter = null;
+function renderMapTab(el){
+  const loc = curLoc();
+  el.innerHTML = `
+    <div class="panel">
+      <div class="map-toolbar">
+        <h3 style="margin:0;">${t('map_title')} — ${loc.name}</h3>
+        <div class="type-filter" id="typeFilterHost"></div>
+      </div>
+      <div class="plan-area" id="planArea" style="${loc.planImage?`background-image:url(${loc.planImage});`:''}"></div>
+      <div class="legend">
+        <span><i style="background:var(--success)"></i>${t('status_ok')}</span>
+        <span><i style="background:var(--danger)"></i>${t('status_activity')}</span>
+        <span><i style="background:var(--amber)"></i>${t('status_damaged')}</span>
+        <span><i style="background:var(--grey)"></i>${t('status_missing')}</span>
+      </div>
+    </div>
+  `;
+  document.getElementById('typeFilterHost').innerHTML =
+    `<div class="type-chip ${mapTypeFilter===null?'sel':''}" onclick="setMapFilter(null)">${t('all_types')}</div>` +
+    Object.entries(deviceTypes).map(([k,v])=>`<div class="type-chip ${mapTypeFilter===k?'sel':''}" onclick="setMapFilter('${k}')">${v.icon} ${v.label}</div>`).join('');
+  drawPlanArea('planArea', false);
+}
+function setMapFilter(type){ mapTypeFilter=type; renderTabContent(document.getElementById('content')); }
+
+function drawPlanArea(elId, editable){
+  const el = document.getElementById(elId); if(!el) return;
+  const loc = curLoc();
+  el.style.backgroundImage = loc.planImage ? `url(${loc.planImage})` : '';
+  const zones = curZones();
+  let devs = curDevices();
+  if(mapTypeFilter) devs = devs.filter(d=>d.type===mapTypeFilter);
+  let html = '';
+  if(!loc.planImage && zones.length===0 && devs.length===0){
+    html = `<div class="plan-empty">${t('plan_missing')}<br>${can('edit.plan')?t('plan_admin_hint'):t('plan_user_hint')}</div>`;
+  } else {
+    html += zones.map(z=>`<div class="zone2" style="left:${z.x}%; top:${z.y}%; width:${z.w}%; height:${z.h}%;">${z.name}</div>`).join('');
+    html += devs.map(d=>{
+      const clickAttr = editable ? `onclick="event.stopPropagation(); openDeviceDrawer('${d.id}')"` : `onclick="openDeviceDrawer('${d.id}')"`;
+      return `<div class="dev-pt ${d.status}" style="left:${d.x}%; top:${d.y}%;" title="№ ${d.number} — ${d.name}" ${clickAttr}>${deviceTypes[d.type].icon}</div>`;
+    }).join('');
+  }
+  el.innerHTML = html;
+}
+
+/* device detail drawer (view/edit depending on role) */
+function openDeviceDrawer(id){
+  const d = curDevices().find(x=>x.id===id); if(!d) return;
+  const vis = state.visits.filter(v=>v.deviceId===id).slice(0,6);
+  const editable = can('edit.devices');
+  const drawer = document.getElementById('drawer');
+  drawer.innerHTML = `
+    <h3>№ ${d.number} — ${deviceTypes[d.type].icon} ${deviceTypes[d.type].label}</h3>
+    <div class="sub">${d.name} · ${zoneName(d.zoneId)}</div>
+    <div class="panel" style="padding:12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; font-size:12.5px;"><span>Статус</span><b style="color:${statusMeta(d.status).c}">${statusMeta(d.status).l}</b></div>
+      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-top:4px;"><span>Последний визит</span><b>${d.lastVisitAt}</b></div>
+      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-top:4px;"><span>Техник</span><b>${d.lastTech}</b></div>
+    </div>
+    <button class="btn ghost block" style="margin-bottom:10px;" onclick="openQRModal(curDevices().find(x=>x.id==='${d.id}'))">Показать / распечатать QR</button>
+    ${editable ? `<button class="btn danger block" style="margin-bottom:14px;" onclick="deleteDevice('${d.id}')">Удалить устройство</button>` : ''}
+    <h4>История визитов</h4>
+    ${vis.length ? vis.map(v=>`<div class="audit-item"><b>${v.time}</b> — ${v.summary} (${v.tech})</div>`).join('') : `<div class="empty">${t('empty_visits_dev')}</div>`}
+  `;
+  document.getElementById('drawerBg').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function closeDrawer(){ document.getElementById('drawerBg').classList.remove('show'); document.getElementById('drawer').classList.remove('show'); }
+function deleteDevice(id){
+  if(!requirePerm('edit.devices')) return;
+  if(!confirm('Удалить устройство и его историю визитов из карты?')) return;
+  state.devices[state.activeLocationId] = curDevices().filter(d=>d.id!==id);
+  logAudit(`Удалено устройство ${id}`);
+  closeDrawer(); saveState(); renderRoot();
+}
+
+/* =========================================================
+   THRESHOLDS TAB
+========================================================= */
+function renderThresholdsTab(el){
+  const th = curThresholds();
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('thresh_title')} — ${curLoc().name}</h3>
+      <p class="footnote" style="margin-top:-6px; margin-bottom:14px;">${t('thresh_hint')}</p>
+      <table><thead><tr><th>${t('col_species')}</th><th>${t('col_threshold')}</th></tr></thead><tbody>
+        ${Object.keys(th).filter(k=>k!=='shift').map(k=>`<tr><td>${k}</td><td><input type="number" min="1" value="${th[k]}" style="width:90px;" ${can('edit.thresholds')?'':'disabled'} onchange="setThreshold('${k}', this.value)"></td></tr>`).join('')}
+      </tbody></table>
+      <div class="fieldrow" style="margin-top:16px; max-width:280px;">
+        <div><label>${t('thresh_shift')}</label><input type="number" min="1" value="${th.shift}" ${can('edit.thresholds')?'':'disabled'} onchange="setThreshold('shift', this.value)"></div>
+      ${can('edit.thresholds')?'':'<p class="footnote">'+t('thresh_view_only')+'</p>'}
+      </div>
+    </div>
+  `;
+}
+function setThreshold(key, val){
+  if(!requirePerm('edit.thresholds')) return;
+  curThresholds()[key] = parseInt(val)||1;
+  logAudit(`Изменён порог «${key}» → ${val}`);
+  saveState();
+}
+
+/* =========================================================
+   REPORTS TAB
+========================================================= */
+function renderReportsTab(el){
+  const days = [t('mon'),t('tue'),t('wed'),t('thu'),t('fri')];
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('reports_title')}</h3>
+      <p class="footnote" style="margin-top:-6px; margin-bottom:14px;">${t('reports_hint')}</p>
+      <button class="btn" onclick="generateServiceReport()">${t('reports_btn')}</button>
+    </div>
+    <div class="panel">
+      <h3>${t('reports_sched')}</h3>
+      <div class="fieldrow">
+        <div><label>${t('reports_day')}</label><select id="schedDay" onchange="setSched('schedDay', this.value)">${days.map(d=>`<option ${state.notif.schedDay===d?'selected':''}>${d}</option>`).join('')}</select></div>
+        <div><label>${t('reports_time')}</label><input type="time" value="${state.notif.schedTime}" onchange="setSched('schedTime', this.value)"></div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink);"><input type="checkbox" ${state.notif.schedEnabled?'checked':''} onchange="setSched('schedEnabled', this.checked)"> ${t('reports_auto')}</label>
+    </div>
+  `;
+}
+function setSched(k,v){ if(!requirePerm('edit.notif')) return; state.notif[k]=v; saveState(); }
+function generateServiceReport(){
+  const loc = curLoc(); const vis = curVisits(); const devs = curDevices();
+  const inc = vis.filter(v=>v.result==='activity');
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><meta charset="utf-8"><title>Сервис-репорт — ${loc.name}</title>
+    <style>
+      body{font-family:Arial,sans-serif; padding:30px; color:#1b211f;}
+      h1{font-size:22px; border-bottom:2px solid #1b211f; padding-bottom:8px;}
+      h2{font-size:16px; margin-top:26px;}
+      table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px;}
+      th,td{border:1px solid #ccc; padding:6px 8px; text-align:left;}
+      .kpi{display:flex; gap:20px; margin-top:14px;}
+      .kpi div{border:1px solid #ccc; padding:10px 16px; border-radius:6px;}
+      .kpi b{display:block; font-size:22px;}
+    </style></head><body>
+    <h1>Сервис-репорт · ${loc.name}</h1>
+    <div>Адрес: ${loc.address} · Контакты: ${loc.contacts} · Дата: ${nowFull()}</div>
+    <div class="kpi">
+      <div><b>${devs.length}</b>устройств</div>
+      <div><b>${vis.length}</b>визитов</div>
+      <div><b>${inc.length}</b>инцидентов</div>
+      <div><b>${devs.filter(d=>d.status==='overdue').length}</b>просрочено</div>
+    </div>
+    <h2>Инциденты</h2>
+    <table><tr><th>Устройство</th><th>Зона</th><th>Время</th><th>Результат</th><th>Техник</th></tr>
+    ${inc.map(v=>{const d=devs.find(x=>x.id===v.deviceId)||{}; return `<tr><td>№ ${d.number||'—'} ${d.name||''}</td><td>${zoneName(v.zoneId)}</td><td>${v.time}</td><td>${v.summary}</td><td>${v.tech}</td></tr>`}).join('')}
+    </table>
+    <h2>Полный журнал визитов</h2>
+    <table><tr><th>Устройство</th><th>Зона</th><th>Время</th><th>Результат</th><th>Техник</th></tr>
+    ${vis.map(v=>{const d=devs.find(x=>x.id===v.deviceId)||{}; return `<tr><td>№ ${d.number||'—'} ${d.name||''}</td><td>${zoneName(v.zoneId)}</td><td>${v.time}</td><td>${v.summary}</td><td>${v.tech}</td></tr>`}).join('')}
+    </table>
+    </body></html>`);
+  win.document.close();
+  try { win.focus(); win.print(); } catch(e) {}
+}
+
+/* =========================================================
+   LOCATIONS TAB
+========================================================= */
+function renderLocationsTab(el){
+  const rows = state.locations.map(l=>{
+    const d = state.devices[l.id]||[]; const v = state.visits.filter(x=>x.locationId===l.id);
+    const inc = v.filter(x=>x.result==='activity').length;
+    return `<tr><td><b>${l.name}</b></td><td>${d.length}</td><td>${v.length}</td><td>${inc}</td><td>${state.alerts.filter(a=>a.locationId===l.id && !a.ack).length}</td></tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('loc_title')}</h3>
+      <table><thead><tr><th>${t('col_location')}</th><th>${t('col_devices')}</th><th>${t('col_visits')}</th><th>${t('col_incidents')}</th><th>${t('col_open_alerts')}</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="footnote">${t('loc_hint')}</p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   SETTINGS TAB (client notifications)
+========================================================= */
+function renderSettingsTab(el){
+  const n = state.notif;
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('settings_title')}</h3>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><input type="checkbox" ${n.email?'checked':''} onchange="setNotif('email', this.checked)"> ${t('settings_email')}</label>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><input type="checkbox" ${n.sms?'checked':''} onchange="setNotif('sms', this.checked)"> ${t('settings_sms')}</label>
+      <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" ${n.push?'checked':''} onchange="setNotif('push', this.checked)"> ${t('settings_push')}</label>
+    </div>
+  `;
+}
+function setNotif(k,v){ if(!requirePerm('edit.notif')) return; state.notif[k]=v; saveState(); }
+
+/* =========================================================
+   AUDIT TAB
+========================================================= */
+function renderAuditTab(el){
+  el.innerHTML = `<div class="panel"><h3>${t('audit_title')}</h3>
+    ${state.auditLog.length ? state.auditLog.slice(0,60).map(a=>`<div class="audit-item"><b>${a.time}</b> · ${a.user} — ${a.action}</div>`).join('') : `<div class="empty">${t('empty_audit')}</div>`}
+  </div>`;
+}
+
+
+/* =========================================================
+   ROUNDS + CALENDAR (supervisor)
+========================================================= */
+function renderRoundsTab(el){
+  if(!can('view.rounds')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const prog = deviceProgress();
+  const loc = curLoc();
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('rounds_title')} — ${loc.name}</h3>
+      <div style="font-size:14px; margin-bottom:8px;"><b>${prog.done}</b> / ${prog.total} · ${Math.round(100*(prog.done/(prog.total||1)))}%</div>
+      <div style="height:10px; background:var(--line); border-radius:5px; overflow:hidden; margin-bottom:16px;"><div style="height:100%; width:${prog.total?Math.round(100*prog.done/prog.total):0}%; background:var(--success);"></div></div>
+      <div class="grid2">
+        <div>
+          <h4 style="color:var(--success);">${t('rounds_checked')} (${prog.done})</h4>
+          <table><thead><tr><th>№</th><th>${t('col_name')}</th><th>${t('col_time')}</th><th>${t('col_tech')}</th></tr></thead>
+          <tbody>${prog.checked.map(d=>`<tr><td class="mono">${d.number}</td><td>${deviceTypes[d.type]?.icon||''} ${d.name}</td><td>${d.lastVisitAt||'—'}</td><td>${d.lastTech||'—'}</td></tr>`).join('')||'<tr><td colspan="4">—</td></tr>'}</tbody></table>
+        </div>
+        <div>
+          <h4 style="color:var(--danger);">${t('rounds_pending')} (${prog.left})</h4>
+          <table><thead><tr><th>№</th><th>${t('col_name')}</th><th>${t('col_zone')}</th></tr></thead>
+          <tbody>${prog.pending.map(d=>`<tr><td class="mono">${d.number}</td><td>${deviceTypes[d.type]?.icon||''} ${d.name}</td><td>${zoneName(d.zoneId)}</td></tr>`).join('')||'<tr><td colspan="3">—</td></tr>'}</tbody></table>
+        </div>
+      </div>
+    </div>`;
+}
+function renderCalendarTab(el){
+  if(!can('view.calendar')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const loc = curLoc();
+  const w = weekRodentChecks(loc.id);
+  const m = monthCompanyCheck(loc.id);
+  const rules = state.scheduleRules || {rodentPerWeek:2, companyPerMonth:1};
+  const wOk = w.done >= (rules.rodentPerWeek||2);
+  const mOk = m.done >= (rules.companyPerMonth||1);
+  // simple month grid
+  const now = new Date();
+  const y = now.getFullYear(), mo = now.getMonth();
+  const first = new Date(y, mo, 1);
+  const startPad = (first.getDay()+6)%7;
+  const daysInMonth = new Date(y, mo+1, 0).getDate();
+  const visDays = new Set((state.visits||[]).filter(v=>v.locationId===loc.id && (v.day||'').startsWith(y+'-'+String(mo+1).padStart(2,'0'))).map(v=>v.day));
+  const companyDays = new Set((state.scheduleEvents||[]).filter(e=>e.locationId===loc.id && e.type==='company').map(e=>e.date));
+  let cells = '';
+  for(let i=0;i<startPad;i++) cells += '<div style="padding:8px;"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const iso = y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const hasVis = visDays.has(iso);
+    const hasCo = companyDays.has(iso);
+    const isToday = iso===todayISO();
+    cells += `<div style="padding:8px 4px; border-radius:6px; text-align:center; font-size:12px; border:1px solid ${isToday?'var(--accent)':'var(--line)'}; background:${hasCo?'var(--amber-soft)':hasVis?'var(--success-soft)':'var(--panel)'};">
+      <div style="font-weight:600;">${d}</div>
+      <div style="font-size:10px; color:var(--ink-soft);">${hasCo?'🏢':hasVis?'✓':''}</div>
+    </div>`;
+  }
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('cal_title')} — ${loc.name}</h3>
+      <p class="footnote">${t('cal_rule_rodent')}<br>${t('cal_rule_company')}</p>
+      <div class="grid2" style="margin-top:12px;">
+        <div class="stat ${wOk?'':'danger'}" style="border-bottom-width:4px;">
+          <div class="lbl">${t('cal_week')}</div>
+          <div class="num">${w.done} / ${rules.rodentPerWeek||2}</div>
+          <div class="lbl">${wOk?t('cal_done'):t('cal_need')}</div>
+        </div>
+        <div class="stat ${mOk?'':'amber'}" style="border-bottom-width:4px;">
+          <div class="lbl">${t('cal_month')}</div>
+          <div class="num">${m.done} / ${rules.companyPerMonth||1}</div>
+          <div class="lbl">${mOk?t('cal_done'):t('cal_need')}</div>
+        </div>
+      </div>
+      <button class="btn small" style="margin-top:12px;" onclick="markCompanyInspection()">${t('cal_add_company')}</button>
+    </div>
+    <div class="panel">
+      <h3>${now.toLocaleString(localeTag(),{month:'long', year:'numeric'})}</h3>
+      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:8px;">
+        ${['Mo','Tu','We','Th','Fr','Sa','Su'].map(x=>`<div style="text-align:center; font-size:10px; color:var(--ink-soft); font-weight:600;">${x}</div>`).join('')}
+        ${cells}
+      </div>
+      <p class="footnote">✓ — ${t('rounds_checked')} · 🏢 — company</p>
+    </div>`;
+}
+function markCompanyInspection(){
+  if(!requirePerm('edit.schedule')) return;
+  const date = todayISO();
+  state.scheduleEvents = state.scheduleEvents||[];
+  if(state.scheduleEvents.some(e=>e.locationId===state.activeLocationId && e.type==='company' && e.date===date)){
+    alert('OK'); return;
+  }
+  state.scheduleEvents.push({
+    id:'SE'+Date.now().toString(36),
+    locationId:state.activeLocationId,
+    type:'company',
+    date,
+    by: currentUser()?.name||currentUser()?.login||'—',
+    note:'Company deratization / inspection'
+  });
+  logAudit('Company inspection marked '+date);
+  saveState(); renderRoot();
+}
+
+/* =========================================================
+   ADMIN: PLAN TAB
+========================================================= */
+function renderAdminPlanTab(el){
+  if(!can('view.plan')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const loc = curLoc();
+  el.innerHTML = `
+    <div class="panel">
+      <h3>${t('plan_title')} — ${loc.name}</h3>
+      <p class="footnote" style="margin-top:-6px; margin-bottom:12px;">${t('plan_upload_hint')}</p>
+      <input type="file" id="planUpload" accept="image/*" onchange="handlePlanUpload(this)">
+      <div class="plan-area" id="planAreaAdmin" style="margin-top:14px; ${loc.planImage?`background-image:url(${loc.planImage});`:''}"></div>
+    </div>
+    <div class="panel">
+      <h3>Реквизиты объекта</h3>
+      <div class="fieldrow">
+        <div><label>Название</label><input type="text" value="${loc.name}" onchange="setLocField('name', this.value)"></div>
+        <div><label>Адрес</label><input type="text" value="${loc.address}" onchange="setLocField('address', this.value)"></div>
+      </div>
+      <div class="fieldrow">
+        <div><label>Контактный телефон (для наклеек QR)</label><input type="text" value="${loc.contacts}" onchange="setLocField('contacts', this.value)"></div>
+        <div><label>Часовой пояс</label><input type="text" value="${loc.tz}" onchange="setLocField('tz', this.value)"></div>
+      </div>
+    </div>
+  `;
+  drawPlanArea('planAreaAdmin', false);
+}
+function setLocField(k,v){ if(!requirePerm('edit.plan')) return; curLoc()[k]=v; logAudit(`Изменён реквизит объекта «${k}»`); saveState(); }
+function handlePlanUpload(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    curLoc().planImage = e.target.result;
+    logAudit(`Загружен план объекта «${curLoc().name}»`);
+    saveState(); renderRoot();
+  };
+  reader.readAsDataURL(file);
+}
+
+/* =========================================================
+   ADMIN: ZONES TAB
+========================================================= */
+let zoneDraw = null;
+function renderAdminZonesTab(el){
+  if(!can('view.zones')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const loc = curLoc();
+  el.innerHTML = `
+    <div class="panel">
+      <div class="map-toolbar"><h3 style="margin:0;">Зоны — ${loc.name}</h3><button class="btn small" onclick="toggleZoneDraw()" id="zoneDrawBtn">Нарисовать зону</button></div>
+      <p class="footnote" style="margin-bottom:10px;">Нажмите «Нарисовать зону», затем протяните прямоугольник по плану левой кнопкой мыши.</p>
+      <div class="plan-area" id="planAreaZones" style="${loc.planImage?`background-image:url(${loc.planImage});`:''}"></div>
+    </div>
+    <div class="panel">
+      <h3>Список зон</h3>
+      <table><thead><tr><th>Название</th><th>Устройств</th><th></th></tr></thead><tbody>
+        ${curZones().map(z=>`<tr><td>${z.name}</td><td>${curDevices().filter(d=>d.zoneId===z.id).length}</td><td><button class="btn ghost small" onclick="deleteZone('${z.id}')">Удалить</button></td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+  drawZonesEditable();
+  attachZoneDrawHandlers();
+}
+function toggleZoneDraw(){
+  zoneDraw = zoneDraw ? null : {active:true};
+  document.getElementById('zoneDrawBtn').classList.toggle('active');
+  document.getElementById('planAreaZones').classList.toggle('placing', !!zoneDraw);
+}
+function drawZonesEditable(){
+  const el = document.getElementById('planAreaZones'); if(!el) return;
+  el.innerHTML = curZones().map(z=>`<div class="zone2" style="left:${z.x}%; top:${z.y}%; width:${z.w}%; height:${z.h}%;">${z.name}</div>`).join('');
+}
+function attachZoneDrawHandlers(){
+  const el = document.getElementById('planAreaZones'); if(!el) return;
+  let start=null, tempDiv=null;
+  el.onmousedown = e=>{
+    if(!zoneDraw) return;
+    const r = el.getBoundingClientRect();
+    start = { x:(e.clientX-r.left)/r.width*100, y:(e.clientY-r.top)/r.height*100 };
+    tempDiv = document.createElement('div'); tempDiv.className='zone2'; tempDiv.style.left=start.x+'%'; tempDiv.style.top=start.y+'%';
+    el.appendChild(tempDiv);
+  };
+  el.onmousemove = e=>{
+    if(!zoneDraw || !start) return;
+    const r = el.getBoundingClientRect();
+    const cx=(e.clientX-r.left)/r.width*100, cy=(e.clientY-r.top)/r.height*100;
+    const x=Math.min(start.x,cx), y=Math.min(start.y,cy), w=Math.abs(cx-start.x), h=Math.abs(cy-start.y);
+    tempDiv.style.left=x+'%'; tempDiv.style.top=y+'%'; tempDiv.style.width=w+'%'; tempDiv.style.height=h+'%';
+  };
+  el.onmouseup = e=>{
+    if(!zoneDraw || !start) return;
+    const r = el.getBoundingClientRect();
+    const cx=(e.clientX-r.left)/r.width*100, cy=(e.clientY-r.top)/r.height*100;
+    const x=Math.min(start.x,cx), y=Math.min(start.y,cy), w=Math.abs(cx-start.x), h=Math.abs(cy-start.y);
+    start=null; tempDiv.remove();
+    if(w<2||h<2) return;
+    const name = prompt('Название зоны:'); if(!name) return;
+    const id = 'Z'+(curZones().length+1)+'_'+Date.now().toString(36).slice(-4);
+    curZones().push({id, name, x, y, w, h});
+    logAudit(`Добавлена зона «${name}»`);
+    saveState(); renderAdminZonesTab(document.getElementById('content'));
+  };
+}
+function deleteZone(id){
+  if(!requirePerm('edit.zones')) return;
+  if(!confirm('Удалить зону? Устройства в ней останутся без привязки.')) return;
+  state.zones[state.activeLocationId] = curZones().filter(z=>z.id!==id);
+  logAudit(`Удалена зона ${id}`); saveState(); renderAdminZonesTab(document.getElementById('content'));
+}
+
+/* =========================================================
+   ADMIN: DEVICES TAB (placement + list)
+========================================================= */
+let placingType = null;
+function renderAdminDevicesTab(el){
+  if(!can('view.devices')){ el.innerHTML='<div class="panel"><div class="empty">'+t('denied')+'</div></div>'; return; }
+  const loc = curLoc();
+  el.innerHTML = `
+    <div class="panel">
+      <div class="map-toolbar">
+        <h3 style="margin:0;">${t('devices_title')} — ${loc.name}</h3>
+        <div class="type-filter" id="placeTypeHost"></div>
+      </div>
+      <p class="footnote" id="placeHint" style="margin-bottom:10px;">Выберите тип устройства и кликните по плану, чтобы разместить точку.</p>
+      <div class="plan-area" id="planAreaDevices" style="${loc.planImage?`background-image:url(${loc.planImage});`:''}"></div>
+    </div>
+    <div class="panel">
+      <h3>Список устройств</h3>
+      <table><thead><tr><th>№</th><th>Тип</th><th>Название</th><th>Зона</th><th>Статус</th><th></th></tr></thead><tbody>
+        ${curDevices().map(d=>`<tr>
+          <td class="mono">${d.number}</td><td>${deviceTypes[d.type].icon} ${deviceTypes[d.type].label}</td><td>${d.name}</td><td>${zoneName(d.zoneId)}</td>
+          <td style="color:${statusMeta(d.status).c}; font-weight:600;">${statusMeta(d.status).l}</td>
+          <td><button class="btn ghost small" onclick="openQRModal(curDevices().find(x=>x.id==='${d.id}'))">QR</button> <button class="btn ghost small" onclick="deleteDevice('${d.id}'); renderAdminDevicesTab(document.getElementById('content'));">Удалить</button></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+  document.getElementById('placeTypeHost').innerHTML = Object.entries(deviceTypes).map(([k,v])=>
+    `<div class="type-chip ${placingType===k?'sel':''}" onclick="setPlacingType('${k}')">${v.icon} ${v.label}</div>`).join('');
+  drawPlanArea('planAreaDevices', true);
+  document.getElementById('planAreaDevices').classList.toggle('placing', !!placingType);
+  document.getElementById('planAreaDevices').onclick = e=>{
+    if(!placingType) return;
+    if(e.target.closest('.dev-pt')) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX-r.left)/r.width*100, y=(e.clientY-r.top)/r.height*100;
+    openAddDeviceModal(placingType, x, y);
+  };
+}
+function setPlacingType(t){ if(!requirePerm('edit.devices')) return; placingType = placingType===t ? null : t; renderAdminDevicesTab(document.getElementById('content')); }
+
+let pendingDevice = null;
+function openAddDeviceModal(type, x, y){
+  pendingDevice = { type, x, y };
+  document.getElementById('devModalType').textContent = deviceTypes[type].icon+' '+deviceTypes[type].label;
+  document.getElementById('devName').value = '';
+  document.getElementById('devNumber').value = state.nextIdCounter;
+  const zsel = document.getElementById('devZoneSel');
+  zsel.innerHTML = curZones().map(z=>`<option value="${z.id}">${z.name}</option>`).join('') || `<option value="">без зоны</option>`;
+  document.getElementById('devModal').classList.add('show');
+}
+function cancelAddDevice(){ document.getElementById('devModal').classList.remove('show'); pendingDevice=null; }
+function confirmAddDevice(){
+  if(!requirePerm('edit.devices')) return;
+  const name = document.getElementById('devName').value.trim();
+  if(!name){ alert('Укажите название точки'); return; }
+  const zoneId = document.getElementById('devZoneSel').value;
+  const number = document.getElementById('devNumber').value;
+  const dev = { id:'D'+number+'_'+Date.now().toString(36).slice(-4), number, type:pendingDevice.type, name, zoneId, x:pendingDevice.x, y:pendingDevice.y, status:'ok', lastVisitAt:'—', lastTech:'—' };
+  curDevices().push(dev);
+  state.nextIdCounter++;
+  logAudit(`Добавлено устройство № ${number} (${deviceTypes[dev.type].label}) — ${name}`);
+  saveState();
+  document.getElementById('devModal').classList.remove('show');
+  placingType = null;
+  renderAdminDevicesTab(document.getElementById('content'));
+  openQRModal(dev);
+}
+
+/* =========================================================
+   QR MODAL (shared)
+========================================================= */
+let qrCurrentDevice = null;
+function openQRModal(dev){
+  qrCurrentDevice = dev;
+  document.getElementById('qrModalTitle').textContent = `№ ${dev.number} — ${dev.name}`;
+  const box = document.getElementById('qrBoxTarget'); box.innerHTML='';
+  const payload = `PC|${state.activeLocationId}|${dev.id}|${dev.number}`;
+  if(typeof QRCode === 'function'){ new QRCode(box, { text:payload, width:180, height:180 }); }
+  else { box.innerHTML = `<div style="font-size:12px;">Код станции: <b class="mono">${dev.number}</b></div>`; }
+  document.getElementById('qrModal').classList.add('show');
+}
+function closeQRModal(){ document.getElementById('qrModal').classList.remove('show'); }
+function downloadQR(){
+  const canvas = document.querySelector('#qrBoxTarget canvas'); if(!canvas) return;
+  const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = `device-${qrCurrentDevice.number}.png`; a.click();
+}
+function printQR(){
+  const canvas = document.querySelector('#qrBoxTarget canvas');
+  const loc = curLoc();
+  const win = window.open('', '_blank');
+  win.document.write(`<html><body style="text-align:center; font-family:sans-serif; padding:20px;">
+    <h3>№ ${qrCurrentDevice.number}</h3><div>${qrCurrentDevice.name}</div>
+    <img src="${canvas?canvas.toDataURL():''}" style="margin:14px 0;">
+    <div style="font-size:12px;">${loc.name}<br>${loc.contacts}</div>
+    </body></html>`);
+  win.document.close(); win.print();
+}
+
+/* =========================================================
+   TECH FLOW
+========================================================= */
+let tech = { step:0, current:null, cameraStream:null, scanning:false,
+  form:{ state:'ok', result:null, pest:null, count:1, alive:null, actions:[], photo:null, note:'' },
+  geo:{ status:'idle', distance:null, accuracy:null, override:false } };
+function flowLabels(){ return [t('flow_1'),t('flow_2'),t('flow_3'),t('flow_4'),t('flow_5')]; }
+
+function renderTechRoot(content){
+  content.innerHTML = `
+    <div class="tech-wrap">
+      <div class="phone"><div class="phone-notch"></div><div class="screen" id="screen"></div></div>
+      <div style="flex:1; min-width:260px; padding-top:6px;">
+        <h3 style="font-family:'Barlow Condensed'; font-size:20px; margin:0 0 8px;">${t('tech_how')}</h3>
+        <p style="color:var(--ink-soft); font-size:14px; line-height:1.55;">${t('tech_how_text')}</p>
+        <div class="flowsteps" id="flowsteps" style="border-left:2px solid var(--line); padding-left:16px; margin-left:4px;"></div>
+      </div>
+    </div>
+  `;
+  renderTech();
+}
+function renderFlowsteps(){
+  document.getElementById('flowsteps').innerHTML = flowLabels().map((l,i)=>
+    `<div class="flowstep ${i<=tech.step?'done':''}" style="position:relative; padding:0 0 20px; font-size:13.5px; color:${i<=tech.step?'var(--ink)':'var(--ink-soft)'};"><b>${i+1}.</b> ${l}</div>`).join('');
+}
+function stopCamera(){ if(tech.cameraStream){ tech.cameraStream.getTracks().forEach(t=>t.stop()); tech.cameraStream=null; } tech.scanning=false; }
+
+async function startCameraStreamOnly(){
+  const video = document.getElementById('camVideo'); if(!video) return;
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    tech.cameraStream = stream; video.srcObject = stream; await video.play();
+    tech.scanning = true; scanLoop();
+  }catch(err){
+    const s = document.getElementById('camStatus');
+    if(s) s.innerHTML = `Камера недоступна (${err.message||'нет разрешения'}). Введите код станции вручную ниже.`;
+  }
+}
+function scanLoop(){
+  if(!tech.scanning) return;
+  const video = document.getElementById('camVideo'); const canvas = document.getElementById('hiddenCanvas');
+  if(video && video.readyState===video.HAVE_ENOUGH_DATA && typeof jsQR==='function'){
+    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if(code && code.data && code.data.startsWith('PC|')){
+      const parts = code.data.split('|'); const devId = parts[2];
+      const dev = state.devices[state.activeLocationId].find(d=>d.id===devId);
+      if(dev){ stopCamera(); openDeviceAfterScan(dev); return; }
+    }
+  }
+  requestAnimationFrame(scanLoop);
+}
+function manualSubmit(){
+  const val = document.getElementById('manualCode').value.trim();
+  const dev = curDevices().find(d=>d.number===val || d.id===val);
+  if(!dev){ document.getElementById('manualErr').textContent='Устройство с таким номером не найдено.'; return; }
+  stopCamera(); openDeviceAfterScan(dev);
+}
+function openDeviceAfterScan(dev){
+  tech.current = dev;
+  tech.form = { state:'ok', result:null, pest:null, count:1, alive:null, actions:[], photo:null, note:'' };
+  tech.geo = { status:'checking', distance:null, accuracy:null, override:false };
+  tech.step = 3; renderTech(); runGeoCheck();
+}
+function runGeoCheck(){
+  if(!navigator.geolocation){ tech.geo.status='unsupported'; renderTech(); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude, longitude, accuracy} = pos.coords;
+    const c = deviceCoord(tech.current);
+    tech.geo.status='done'; tech.geo.distance = distanceMeters(latitude,longitude,c.lat,c.lng); tech.geo.accuracy = accuracy;
+    renderTech();
+  }, err=>{ tech.geo.status='error'; tech.geo.errMsg = err.message; renderTech(); }, { enableHighAccuracy:true, timeout:8000 });
+}
+async function capturePhoto(){
+  const video = document.getElementById('photoVideo');
+  try{
+    if(!tech.cameraStream){ tech.cameraStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } }); }
+    video.srcObject = tech.cameraStream; await video.play();
+    setTimeout(()=>{
+      const canvas = document.getElementById('hiddenCanvas');
+      const w = video.videoWidth||320, h = video.videoHeight||240;
+      const scale = Math.min(1, 320/w);
+      canvas.width = w*scale; canvas.height = h*scale;
+      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+      tech.form.photo = canvas.toDataURL('image/jpeg', 0.5);
+      stopCamera(); renderTech();
+    }, 700);
+  }catch(err){ alert('Нет доступа к камере: '+(err.message||'разрешение не предоставлено')); }
+}
+function setForm(k,v){ tech.form[k]=v; renderTech(); }
+function bumpCount(d){ tech.form.count = Math.max(1, tech.form.count+d); renderTech(); }
+function toggleAction(a){ const i=tech.form.actions.indexOf(a); if(i===-1) tech.form.actions.push(a); else tech.form.actions.splice(i,1); renderTech(); }
+function canSaveTech(){
+  const f = tech.form, dev = tech.current;
+  if(!f.result) return false;
+  if(f.result!=='clean' && deviceTypes[dev.type].pest){
+    if(dev.type.startsWith('rodent') && (!f.pest || !f.alive)) return false;
+    if(dev.type==='insect_monitor' && !f.pest) return false;
+    if(!f.photo) return false;
+  }
+  if(f.result==='anomaly' && !f.photo) return false;
+  if(tech.geo.status==='done' && tech.geo.distance>15 && !tech.geo.override) return false;
+  return true;
+}
+async function saveVisit(){
+  if(!requirePerm('edit.visits')) return;
+  const dev = tech.current, f = tech.form;
+  const isPest = deviceTypes[dev.type].pest;
+  const newDeviceStatus = f.state==='damaged'?'damaged' : f.state==='lost'?'missing' : (f.result!=='clean' && isPest ? 'activity' : (f.result==='anomaly'?'activity':'ok'));
+  const now = new Date();
+  const timeStr = formatDateTime(now);
+  dev.status = newDeviceStatus;
+  dev.lastVisitAt = timeStr;
+  dev.lastVisitDay = todayISO();
+  dev.lastVisitTs = now.toISOString();
+  dev.lastTech = (currentUser()?.name||currentUser()?.login||'—');
+
+  let summary = t('status_ok');
+  if(isPest && f.result!=='clean') summary = `${f.pest} — ${f.count}${f.alive?', '+(f.alive==='alive'?'alive':'dead'):''}`;
+  if(!isPest && f.result==='anomaly') summary = f.note||'anomaly';
+
+  const visit = { id:'V'+Date.now().toString(36), locationId:state.activeLocationId, deviceId:dev.id, zoneId:dev.zoneId,
+    time:timeStr, ts:now.toISOString(), result: isPest ? (f.result==='clean'?'clean':'activity') : (f.result==='anomaly'?'activity':'clean'),
+    summary, tech:dev.lastTech, photo:f.photo, pest:f.pest, count:f.count, day: todayISO() };
+  state.visits.unshift(visit);
+
+  if(f.state==='damaged') pushAlert({type:'device', deviceId:dev.id, issue:'damaged'});
+  if(f.state==='lost') pushAlert({type:'device', deviceId:dev.id, issue:'missing'});
+  if(isPest && f.result!=='clean'){
+    const th = curThresholds()[f.pest];
+    if(th && f.count>=th) pushAlert({type:'threshold', deviceId:dev.id, pest:f.pest, count:f.count});
+    const todayIncidents = state.visits.filter(v=>v.locationId===state.activeLocationId && v.day===todayISO() && v.result==='activity').length;
+    if(todayIncidents>=curThresholds().shift) pushAlert({type:'shift', count:todayIncidents});
+  }
+
+  if(navigator.onLine){ await saveState(); } else { outbox.push(visit.id); }
+  tech.step = 5; renderTech();
+}
+function pushAlert(a){
+  state.alerts.unshift({ id:'AL'+Date.now().toString(36), locationId:state.activeLocationId, time:formatDateTime(new Date()), ack:false, ...a });
+}
+window.addEventListener('online', async ()=>{ if(outbox.length){ await saveState(); outbox=[]; } renderTech(); });
+window.addEventListener('offline', renderTech);
+
+function renderTech(){
+  renderFlowsteps();
+  const s = document.getElementById('screen'); if(!s) return;
+  const online = navigator.onLine;
+  const netPill = online ? `<span class="status-pill on"><i class="dotc"></i>${t('online')}</span>` : `<span class="status-pill warn"><i class="dotc"></i>${t('offline')}${outbox.length?` · ${outbox.length} ${t('in_queue')}`:''}</span>`;
+
+  if(tech.step===0){
+    s.innerHTML = `<div class="screen-top"><span class="mono">${nowTime()}</span>${netPill}</div>
+      <div style="font-family:'Barlow Condensed'; font-size:22px; margin-top:6px;">${t('choose_object')}</div>
+      ${state.locations.map(l=>`<div class="obj-card" onclick="setLocation('${l.id}'); tech.step=1; renderTech();"><div><b>${l.name}</b><span>${(state.devices[l.id]||[]).length} ${t('devices_count')}</span></div><div class="mono" style="font-size:18px;">›</div></div>`).join('')}`;
+  } else if(tech.step===1){
+    const prog = deviceProgress();
+    const pending = prog.pending;
+    const checked = prog.checked;
+    s.innerHTML = `<div class="screen-top"><span class="mono">${nowTime()}</span>${netPill}</div>
+      <div style="font-family:'Barlow Condensed'; font-size:20px;">${curLoc().name}</div>
+      <div style="font-size:13px; color:var(--ink-soft); margin-bottom:4px;">${t('progress_today')}: <b>${prog.done}/${prog.total}</b></div>
+      <div style="height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px;"><div style="height:100%; width:${prog.total?Math.round(100*prog.done/prog.total):0}%; background:var(--success);"></div></div>
+      <button class="btn" onclick="tech.step=2; renderTech();">📷 ${t('scan_qr')}</button>
+      <div class="field"><label>${t('remaining')} (${pending.length})</label>
+        <div class="remaining-list">${pending.length ? pending.map(d=>`<div class="remaining-item" onclick="openDeviceAfterScan(curDevices().find(x=>x.id==='${d.id}'))"><span>${deviceTypes[d.type].icon} № ${d.number} — ${d.name}</span><span class="mono" style="color:var(--danger);">○</span></div>`).join('') : '<div class="empty" style="padding:10px 0;">'+t('all_done')+'</div>'}</div>
+      </div>
+      <div class="field"><label>${t('checked_today')} (${checked.length})</label>
+        <div class="remaining-list">${checked.length ? checked.map(d=>`<div class="remaining-item" style="opacity:.85;"><span>${deviceTypes[d.type].icon} № ${d.number} — ${d.name}</span><span class="mono" style="color:var(--success);">✓ ${d.lastVisitAt||''}</span></div>`).join('') : '<div class="empty" style="padding:8px 0; font-size:12px;">—</div>'}</div>
+      </div>`;
+  } else if(tech.step===2){
+    s.innerHTML = `<div class="screen-top"><span class="mono">${nowTime()}</span><span class="status-pill on"><i class="dotc"></i>${t('online')}</span></div>
+      <div class="cam-wrap"><video id="camVideo" class="cam" muted playsinline></video><div class="cam-frame"></div></div>
+      <div class="verify-line" id="camStatus">${t('cam_hint')}</div>
+      <div class="field"><label>${t('manual_code')}</label><input type="text" id="manualCode" class="mono" placeholder="44"><div id="manualErr" style="color:var(--danger); font-size:11px; margin-top:4px;"></div></div>
+      <button class="btn ghost small" onclick="manualSubmit()">${t('confirm_num')}</button>
+      <button class="btn ghost small" onclick="stopCamera(); tech.step=1; renderTech();">${t('cancel')}</button>`;
+    startCameraStreamOnly();
+  } else if(tech.step===3){
+    const dev = tech.current, g = tech.geo;
+    let geoBlock='';
+    if(g.status==='checking') geoBlock=`<div class="verify-line">⏳ ${t('geo_checking')}</div>`;
+    else if(g.status==='error') geoBlock=`<div class="verify-line bad">✕ GPS: ${g.errMsg}</div><label style="font-size:11px; display:flex; gap:6px; align-items:center; margin-top:4px;"><input type="checkbox" onchange="tech.geo.override=this.checked; renderTech();"> ${t('geo_manual')}</label>`;
+    else if(g.status==='unsupported') geoBlock=`<div class="verify-line bad">✕ ${t('geo_unsupported')}</div>`;
+    else if(g.status==='done'){
+      const ok = g.distance<=15;
+      geoBlock = `<div class="verify-line ${ok?'ok':'bad'}">${ok?'✓':'⚠'} GPS: ${g.distance.toFixed(1)} m (±${g.accuracy.toFixed(0)} m)</div>`;
+      if(!ok) geoBlock += `<label style="font-size:11px; display:flex; gap:6px; align-items:center; margin-top:4px;"><input type="checkbox" onchange="tech.geo.override=this.checked; renderTech();"> ${t('geo_manual')}</label>`;
+    }
+    s.innerHTML = `<div class="screen-top"><span class="mono">${nowTime()}</span><span class="status-pill on"><i class="dotc"></i>OK</span></div>
+      <div class="tag"><div class="idl">${deviceTypes[dev.type].icon} № ${dev.number}</div><div class="name">${dev.name}</div><div style="font-size:11.5px; color:var(--ink-soft);">${zoneName(dev.zoneId)}</div></div>
+      <div style="display:flex; flex-direction:column; gap:8px;"><div class="verify-line ok">✓ QR</div>${geoBlock}<div class="verify-line ok">✓ ${formatDateTime(new Date())}</div></div>
+      <button class="btn" style="margin-top:auto;" ${g.status==='checking'?'disabled':''} onclick="tech.step=4; renderTech();">${t('open_form')}</button>`;
+  } else if(tech.step===4){
+    s.innerHTML = renderVisitForm();
+  } else if(tech.step===5){
+    s.innerHTML = `<div class="screen-top"><span class="mono">${nowTime()}</span>${netPill}</div>
+      <div class="toast"><span>№ ${tech.current.number} ✓ ${formatDateTime(new Date())}${navigator.onLine?'':' ('+t('in_queue')+')'}</span></div>
+      <button class="btn" style="margin-top:auto;" onclick="tech.step=1; renderTech();">${t('back_list')}</button>`;
+  }
+}
+function renderVisitForm(){
+  const dev = tech.current, f = tech.form, type = dev.type, meta = deviceTypes[type];
+  let resultBlock='';
+  if(meta.pest){
+    resultBlock = `<div class="field"><label>${t('visit_result')}</label><div class="seg">
+      <button class="${f.result==='clean'?'sel':''}" onclick="setForm('result','clean')">${t('status_ok')}</button>
+      <button class="${f.result==='pest'?'sel danger':''}" onclick="setForm('result','pest')">${t('status_activity')}</button>
+    </div></div>`;
+    if(f.result==='pest'){
+      resultBlock += `<div class="field"><label>${t('col_species')}</label><div>${pestOptionsByType[type].map(p=>`<div class="chip ${f.pest===p?'sel':''}" onclick="setForm('pest','${p}')">${p}</div>`).join('')}</div></div>
+      <div class="field"><label>${t('visit_count')}</label><div class="counter"><button onclick="bumpCount(-1)">–</button><span>${f.count}</span><button onclick="bumpCount(1)">+</button></div></div>`;
+      if(type.startsWith('rodent')) resultBlock += `<div class="field"><label>${t('visit_alive')}</label><div class="seg"><button class="${f.alive==='alive'?'sel':''}" onclick="setForm('alive','alive')">${t('alive')}</button><button class="${f.alive==='dead'?'sel':''}" onclick="setForm('alive','dead')">${t('dead')}</button></div></div>`;
+      const actionOpts = type.startsWith('rodent') ? [t('act_bait'),t('act_insert'),t('act_disinfect')] : type==='fly_ilt' ? [t('act_glue'),t('act_lamp')] : [t('act_clean')];
+      resultBlock += `<div class="field"><label>${t('visit_actions')}</label><div>${actionOpts.map(a=>`<div class="chip ${f.actions.includes(a)?'sel':''}" onclick="toggleAction('${a}')">${a}</div>`).join('')}</div></div>
+      <div class="photo-req">📷 ${t('photo_req')} ${f.photo?`<img class="photo-thumb" src="${f.photo}">`:''}<video id="photoVideo" class="cam" style="display:none;" muted playsinline></video><button class="btn small ${f.photo?'ghost':''}" onclick="capturePhoto()">${f.photo?t('photo_retake'):t('photo_take')}</button></div>`;
+    }
+  } else {
+    resultBlock = `<div class="field"><label>${t('visit_result')}</label><div class="seg">
+      <button class="${f.result==='clean'?'sel':''}" onclick="setForm('result','clean')">OK</button>
+      <button class="${f.result==='anomaly'?'sel danger':''}" onclick="setForm('result','anomaly')">${t('anomaly')}</button>
+    </div></div>`;
+    if(f.result==='anomaly'){
+      resultBlock += `<div class="field"><label>${t('comment')}</label><textarea onchange="setForm('note', this.value)">${f.note}</textarea></div>
+      <div class="photo-req">📷 ${t('photo_req')} ${f.photo?`<img class="photo-thumb" src="${f.photo}">`:''}<video id="photoVideo" class="cam" style="display:none;" muted playsinline></video><button class="btn small ${f.photo?'ghost':''}" onclick="capturePhoto()">${f.photo?t('photo_retake'):t('photo_take')}</button></div>`;
+    }
+  }
+  return `<div class="screen-top"><span class="mono">${nowTime()}</span><span class="status-pill on"><i class="dotc"></i>form</span></div>
+    <div class="tag"><div class="idl">${meta.icon} № ${dev.number}</div><div class="name">${dev.name}</div></div>
+    <div class="field"><label>${t('device_state')}</label><div class="seg">
+      <button class="${f.state==='ok'?'sel':''}" onclick="setForm('state','ok')">${t('state_ok')}</button>
+      <button class="${f.state==='damaged'?'sel danger':''}" onclick="setForm('state','damaged')">${t('status_damaged')}</button>
+      <button class="${f.state==='lost'?'sel danger':''}" onclick="setForm('state','lost')">${t('state_lost')}</button>
+    </div></div>
+    ${resultBlock}
+    <button class="btn" style="margin-top:auto;" ${canSaveTech()?'':'disabled'} onclick="saveVisit()">${t('save_next')}</button>`;
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+(async function init(){
+  await loadState();
+  if(state && state.lang) try{ localStorage.setItem('obhod:lang', state.lang); }catch(e){}
+  document.documentElement.lang = (state && state.lang==='az') ? 'az' : ((state && state.lang==='en') ? 'en' : 'ru');
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{ baseCoord = { lat:pos.coords.latitude, lng:pos.coords.longitude }; }, ()=>{}, { timeout:5000 });
+  }
+  renderRoot();
+})();
+</script>
+</body>
+</html>
